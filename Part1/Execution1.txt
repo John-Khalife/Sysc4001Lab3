@@ -1,0 +1,43 @@
+0, 1, Switch CPU to Kernel mode.
+1, 3, Context saved.
+4, 1, Find vector 2 in memory position 0x0002.
+5, 1, Load address 0X0695 into the PC.
+6, 0, FORK: copy parent PCB to child PCB
+6, 10, Scheduler called.
+16, 1, IRET
+17, 1, Switch CPU to Kernel mode.
+18, 3, Context saved.
+21, 1, Find vector 3 in memory position 0x0003.
+22, 1, Load address 0X042B into the PC.
+23, 10, EXEC: load program1 of size 10Mb.
+33, 6, Found partition 4 with 10Mb of space.
+39, 0, Marked partition 4 as occupied.
+39, 8, Updating PCB with new information.
+47, 26, Scheduler called.
+73, 1, IRET
+74, 100, CPU Execution.
+174, 1, Switch CPU to Kernel mode.
+175, 3, Context saved.
+178, 1, Find vector 2 in memory position 0x0002.
+179, 1, Load address 0X0695 into the PC.
+180, 0, FORK: copy parent PCB to child PCB
+180, 15, Scheduler called.
+195, 1, IRET
+196, 1, Switch CPU to Kernel mode.
+197, 3, Context saved.
+200, 1, Find vector 3 in memory position 0x0003.
+201, 1, Load address 0X042B into the PC.
+202, 5, EXEC: load program2 of size 15Mb.
+207, 3, Found partition 3 with 15Mb of space.
+210, 0, Marked partition 3 as occupied.
+210, 4, Updating PCB with new information.
+214, 13, Scheduler called.
+227, 1, IRET
+228, 1, Switch CPU to Kernel mode.
+229, 3, Context saved.
+232, 1, Find vector 4 in memory position 0x0004.
+233, 1, Load address 0X0292 into the PC.
+234, 93, SYSCALL: Execute ISR.
+327, 2, Transfer data.
+329, 30, Check for errors.
+359, 1, IRET

@@ -1,0 +1,9 @@
+John Khalife:
+- Responsible for the logic surrounding what to do with input.
+- Responsible for the output of the program.
+- Worked together on Part1 of the docs.
+
+Stavros Karamalis:
+- Responsible for fetching the input
+- Responsible for the automation of trace creation.
+- Worked together on Part1 of the docs
