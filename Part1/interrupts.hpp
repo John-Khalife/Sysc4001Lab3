@@ -39,34 +39,12 @@ namespace MemoryStructures {
         __uint8_t memoryAllocated;
     } typedef pcb_t;
 
-    //This structure represents a file in persistent memory
-    struct extFile {
-        char programName[21];
-        __uint128_t size;
+    //This structure represents an execution order
+    //It is responsible for stating what process should be executed and for how long
+    struct ExecutionOrder {
+        pcb_t* process;
+        int time;
     };
-
-    /**
-     * This method is intended to be used to add on a new process to the pcb.
-     * @param pcb - a reference to the vector
-     * @param index - the index of the entry to be copied.
-    */
-    void copyPCBEntry(std::vector<pcb_t>& pcb ,int index);
-
-    /**
-     * This method modifies a pcb entry, used for the exec command.
-     * @param head
-     * @param pid
-     * @param programName
-     * @param partitionNum
-     * @param memoryAllocated
-     * @param filename
-    */
-    void modifyPCBEntry(
-        std::vector<pcb_t>& pcb,
-        int index,
-        char programName[20],
-        __uint8_t partitionNum,
-        __uint128_t memoryAllocated);
 
     /**
      * This function reserves the memory.
@@ -85,6 +63,13 @@ namespace MemoryStructures {
      * @return an integer representing the size of the program.
     */
    __uint8_t getFileSize(std::shared_ptr<extFile>& head, char* programName);
+
+    /**
+     * This function is responsible for returning an execution order. It states what process should run and for how long.
+     * @param pcb - the pcb table containing all processes
+     * @return an execution order.
+    */
+    ExecutionOrder getExecutionOrder(std::vector<pcb_t>& pcb);
 
     /**
      * This function serves to get the process that needs to be executed.
@@ -202,31 +187,8 @@ namespace Execution {
     void systemCall(int duration, int isrAddress);
 
     /**
-     * This method is intended to handle the fork instruction 
-     * @param duration - An integer stating the time taken for the CPu to complete the action
+     * This method is intended to do one execution cycle of a process.
     */
-    void fork(int duration, std::vector<MemoryStructures::pcb_t>& pcb, int index);
-
-   /**
-    * This method handles the execute instruction
-    * @param filename - a string representing the file name
-    * @param duration - An integer stating the time taken for the CPU to complete the action
-   */
-    void exec(char* filename, int duration, 
-        std::vector<MemoryStructures::pcb_t>& pcb,
-        std::vector<MemoryStructures::extFile>& files,
-        MemoryStructures::Partition* memory,
-        int index);
-
-    /**
-     * This method is used to call the appropriate function based on the instrcution given.
-     * @param instruction - a instr struct that contains the command and any parameters it may have
-    */
-    void executeInstruction(
-        Parsing::instr* instruction,
-        std::vector<MemoryStructures::pcb_t>& pcb,
-       std::vector<MemoryStructures::extFile>& files,
-        MemoryStructures::Partition* memory,
-        int index);
+    void doExecute();
 };
 #endif

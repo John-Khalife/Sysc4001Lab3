@@ -286,34 +286,9 @@ namespace Execution
         writeExecutionStep(1, "Load address " + text + " into the PC."); // output the address being loaded
     }
 
-    void executeInstruction(
-        Parsing::instr *instruction,
-        vector<MemoryStructures::pcb_t> &pcb,
-        vector<MemoryStructures::extFile> &files,
-        MemoryStructures::Partition *memory,
-        int index)
+    void doExecution()
     {
 
-        if (!Parsing::orders::CPU.compare(instruction->commandName))
-        {
-            executeCPU(instruction->args[0].number);
-        }
-        else if (!Parsing::orders::SYSCALL.compare(instruction->commandName))
-        {
-            systemCall(instruction->args[1].number, instruction->args[0].number);
-        }
-        else if (!Parsing::orders::END_IO.compare(instruction->commandName))
-        {
-            interrupt(instruction->args[1].number, instruction->args[0].number);
-        }
-        else if (!Parsing::orders::FORK.compare(instruction->commandName))
-        {
-            fork(instruction->args[0].number, pcb, index);
-        }
-        else if (!Parsing::orders::EXEC.compare(instruction->commandName))
-        {
-            exec(instruction->args[0].word, instruction->args[1].number, pcb, files, memory, index);
-        }
     }
 }
 
@@ -344,7 +319,8 @@ int main(int argc, char *argv[])
     PcbEntry *currentProcess = getRunningProcess(pcb);
     while (currentProcess != NULL)
     {
-        Execution::executeInstruction(operation, pcb, files, memory, (currentProcess->pid - MemoryStructures::SMALLEST_PID));
+        Execution::doExecute(); //execute for somuch time.
+        //TODO: find some way to account for IO waiting time - increment IO counters here.
         PcbEntry* newProcess = getRunningProcess(pcb); // check to see if a new process needs to be run
         if (newProcess != currentProcess)
         { //TODO: Do whatever needs to be done for a context switch
