@@ -18,40 +18,25 @@ namespace MemoryStructures {
 
     const int PARTITION_SIZES[] = {40,25,15,10,8,2};
     const int PARTITION_NUM = 6; 
-    const int SMALLEST_PID = 11; //This holds the smallest pid
 
     //This structure represents a single partition
     struct Partition {
-        __uint8_t partitionNum;
-        __uint8_t size;
-        __uint64_t code; //holds the PID
+        uint partitionNum;
+        uint size;
+        int code; //holds the PID
     } typedef part_t;
 
     //This structure represents a single PCB entry.
     struct PcbEntry {
-        __uint64_t pid;
+        uint pid;
+        uint memorySize;
+        uint arrivalTime;
+        uint totalCPUTime;
+        uint ioFrequency;
+        uint ioDuration;
         std::string programName;
         __uint8_t partitionNum; 
         __uint8_t memoryAllocated;
-        std::streampos fpos; //This is essentially the PC
-        bool doExec; //hidden variable
-        bool isRunning; //hidden variable
-        
-        PcbEntry(__uint64_t pid_v,
-            std::string programName_v,
-            __uint8_t partitionNum_v,
-            __uint8_t memoryAllocated_v,
-            std::streampos fpos_v,
-            bool doExec_v,
-            bool isRunning_v)
-            :
-            pid(pid_v),
-            programName(programName_v),
-            partitionNum(partitionNum_v),
-            memoryAllocated(memoryAllocated_v),
-            fpos(fpos_v),
-            doExec(doExec_v),
-            isRunning(isRunning_v){}
     } typedef pcb_t;
 
     //This structure represents a file in persistent memory
@@ -112,11 +97,7 @@ namespace MemoryStructures {
 
 //These functions and structures are responsible for Parsing.
 namespace Parsing {
-
-    const int MAX_PARAMETERS = 2; // Constant that holds the maximum number of parameters a command can have.
-    const char* PROGRAMS_LIST_FILE_NAME = "external_files.txt";
-    std::ifstream input; //This is the object to be used for intput.
-    std::string traceName; //name of the trace given.
+    const int ARGUMENT_NUM = 1; // The number of arguments allowed in the program
 
     // If ever a new instruction needs to be added - add the equivalent string here
     namespace orders {
@@ -128,29 +109,28 @@ namespace Parsing {
         const string EXEC = "EXEC";
     }
 
-    //This structure holds parameters
-    struct Parameter {
-        bool isString; //This is a type tag
-        union {
-            int number;
-            char word[20];
-        };
-
-        Parameter() {isString = false;}
-    };
-
-    //This struct holds the contents of an instruction including command and arguments
-    struct Instruction{
-        Parameter args[MAX_PARAMETERS];
-        std::string commandName;
-    } typedef instr;
+    /**
+     * This function reads from a given input data text file and returns a pcb table.
+     * @param fileName - a fileName to read the input from
+     * @return a pcbEntry vector containing the entire pcb.
+    */
+    std::vector<MemoryStructures::PcbEntry> loadPCBTable(std::string fileName);
 
     /**
-     * This function reads from a trace given and returns an instruction each time it is called.
-     * @param file - an ifstream object that provides access to the trace.
-     * @return an instruction object containing the neccessary information for the CPU to execute a command.
+     * This method takes the filename of the input file given, and grabs all student ids. it does this so that
+     * the output files can have the same ids and can be correlated with each other.
+     * @param fileName - the filename that was passed to the script before running
+     * @return A list of student numbers to be put into the output files.
     */
-    instr* readFromTrace();
+    std::vector<std::string> grabStudentNumbers(std::string fileName);
+
+    /**
+     * This method takes a filename and returns the name of an output file
+     * @param prefix - the prefix to add before the student names
+     * @param fileName - the name of the input file
+     * @return a string containing the name of the execution file
+    */
+    std::string getOutputFilename(std::string prefix, std::string fileName);
 
     /**
      * This function converts an integer to a hexidecimal string.
@@ -158,12 +138,6 @@ namespace Parsing {
      * @return a hexidecimal string.
     */
     std::string integerToHexString(int number);
-
-    /**
-     * This function takes a extFile empty node and initializes a linked list of files in memory.
-     * @param head - this is a null node that gets initialized by the function.
-    */
-    void readExtFiles(std::vector<MemoryStructures::extFile>& files);
 
     /**
      * helper method to get the number of digits in a number
@@ -177,14 +151,15 @@ namespace Parsing {
 namespace Execution {
 
     int timer = 0; //Necessary for keeping track of the program time over multiple functions within execution
-    std::ofstream output; //keep track of the output file - otherwise would have to pass to every single function in execution.
-    const char* PCB_OUTPUT_FILE_NAME = "system_status.txt";
+    std::ofstream executionOutput; //output object for the main output file
+    std::ofstream memoryStatusOutput; //output object for the memoryStatus.
 
     /**
      * This method sets the output file for execution
-     * @param filename - the name of the primary output file
+     * @param executionFileName - the name of the primary output file
+     * @param memoryStatusFileName - the name of the secondary output file
     */
-    bool setOutputFile(std::string filename);
+    void setOutputFiles(std::string executionFileName, std::string memoryStatusFileName);
 
     /**
      * This method prints the toString method of the PCB to a file

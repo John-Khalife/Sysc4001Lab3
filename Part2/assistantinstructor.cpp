@@ -11,8 +11,6 @@
 #include <sys/shm.h>
 #include "assistantinstructor.hpp"
 
-
-
 namespace ProcessManagement {
     void createProcesses(int processNum) {
         //create a boolean
