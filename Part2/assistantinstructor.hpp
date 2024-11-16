@@ -12,9 +12,9 @@
  * This namespace is intended to be used for process management.
 */
 namespace ProcessManagement {
-    //This set will hold all the ids of every process created
+    //This set will hold all the ids of every process created by the running process
     std::unordered_set<pid_t> processSet;
-    //This set will hold every shared memory segment key created
+    //This set will hold every shared memory segment key created by the running process
     std::unordered_set<int> shmSet;
 
     /**
@@ -60,7 +60,5 @@ namespace ProcessManagement {
      * However, any pointers to memory should be deallocated before this method is called.
     */
    void cleanup();
-
-    
 }
 

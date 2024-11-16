@@ -107,6 +107,12 @@ namespace ProcessManagement {
 
 
 int main(int argc, char* argv[]) {
+    /*
+     * My Idea for the structure
+     - The original process acts as the manager for all the TA processes.
+     - It will be responsible for ending the program.
+    */
+
     //Save the controller process id
     const pid_t ORIGINAL_PID = getpid();
 
@@ -116,7 +122,7 @@ int main(int argc, char* argv[]) {
     //Test by printing
     std::cout<< "I am process " << getpid() << "." << std::endl;
 
-    //Cleanup all the processes
+    //Cleanup all the processes - called by OG process
     if (getpid() == ORIGINAL_PID) {
         ProcessManagement::cleanup();
         exit(0);
@@ -124,7 +130,7 @@ int main(int argc, char* argv[]) {
 
     //Only the created processes will end up calling this
     //They should be terminated when the OG process calls cleanup.
-    //Then the OG process goes to the exit command and everything ends.
+    //Then the OG process goes to the exit call and everything ends.
     while(true) {
         std::cout << "I am still alive." << std::endl;
     }
