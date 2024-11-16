@@ -24,7 +24,7 @@ namespace MemoryStructures {
     struct Partition {
         __uint8_t partitionNum;
         __uint8_t size;
-        std::string code;
+        __uint64_t code; //holds the PID
     } typedef part_t;
 
     //This structure represents a single PCB entry.
