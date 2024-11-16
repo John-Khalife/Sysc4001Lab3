@@ -59,6 +59,11 @@ namespace MemoryStructures
         }
         return NULL;
     }
+
+
+    ExecutionOrder getExecutionOrder(std::vector<pcb_t>& pcb) {
+        return NULL;
+    }
 }
 
 namespace Parsing
