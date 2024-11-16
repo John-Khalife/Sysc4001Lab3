@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <iostream>
-#include <vector>
+#include <csignal>
 #include <sys/shm.h>
 #include "assistantinstructor.hpp"
 
@@ -26,6 +26,9 @@ namespace ProcessManagement {
 
             //Make sure the child process exits the loop so there is no exponential growth of processes
             if (pid == 0) {
+                //wipe the shared memory and process sets so that the created process can have its own children and shared memory
+                processSet.clear();
+                shmSet.clear();
                 isFinished = (bool*) getSharedMemory(bool_id); //attach this value to the process
                 break;
             } else if (pid < 0) {
@@ -46,25 +49,28 @@ namespace ProcessManagement {
         while(!(*isFinished)) {}
         detachSharedMemory(isFinished);
         deallocateSharedMemory(bool_id);
-        
     }
 
     int createSharedMemory(int key, int size) {
         int shm_id = shmget(key,size, IPC_CREAT | 0666); 
-        if (shm_id < 0) {perror("failed shared memory allocation.");}
+        if (shm_id < 0) {perror("Failed shared memory allocation.");}
         shmSet.insert(shm_id);
         return shm_id;
     }
 
     void* getSharedMemory(int shm_id) {
-        if (shm_id < 0) {perror("failed to aquire.");}
         void* ptr = shmat(shm_id,NULL,0);
+        //error handling
+        if (ptr == NULL) {
+            perror("Failed to attach memory");
+        }
         return ptr;
     }
 
 
     void deallocateSharedMemory(int shmid) {
-        shmctl(shmid, IPC_RMID, NULL);
+        shmctl(shmid, IPC_RMID, NULL); //queue for deallocation
+        //Make sure that the id specified is in the shmset before attempting to remove
         if (shmSet.find(shmid) != shmSet.end()) {
             shmSet.erase(shmid);
         }
@@ -77,9 +83,50 @@ namespace ProcessManagement {
         } 
     }
 
-    void cleanup() {
-
+    void terminateProcess(pid_t pid) {
+        if (kill(pid, SIGTERM) == -1) {
+            perror("Failed to terminate process");
+        } else {
+            std::cout << "Process " << pid << " terminated successfully." << std::endl;
+        }
     }
 
+    void cleanup() {
+        //Start by iterating through the process set.
+        //This set should contain all of the children processes created by the calling process.
+        for (pid_t i : processSet) {
+            terminateProcess(i);
+        }
+        //Then deallocate all shared memory
+        for (int i : shmSet) {
+            deallocateSharedMemory(i);
+        }
+    }
+
+}
+
+
+int main(int argc, char* argv[]) {
+    //Save the controller process id
+    const pid_t ORIGINAL_PID = getpid();
+
+    //Create all the processes
+    ProcessManagement::createProcesses(5);
+
+    //Test by printing
+    std::cout<< "I am process " << getpid() << "." << std::endl;
+
+    //Cleanup all the processes
+    if (getpid() == ORIGINAL_PID) {
+        ProcessManagement::cleanup();
+        exit(0);
+    }
+
+    //Only the created processes will end up calling this
+    //They should be terminated when the OG process calls cleanup.
+    //Then the OG process goes to the exit command and everything ends.
+    while(true) {
+        std::cout << "I am still alive." << std::endl;
+    }
 }
 

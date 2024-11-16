@@ -6,13 +6,10 @@
 
 
 //Imports
-#include <iostream>
 #include <unordered_set>
 
 /**
- * This namespace is intended to be used for process management
- * Some of these methods are intended to be called from a parent 'manager' process,
- * while others are intended to be called by the processes being managed.
+ * This namespace is intended to be used for process management.
 */
 namespace ProcessManagement {
     //This set will hold all the ids of every process created
@@ -50,6 +47,19 @@ namespace ProcessManagement {
      * @param ptr - a pointer to the shared memory
     */
     void detachSharedMemory(void* ptr);
+
+    /**
+     * This method is responsible for terminating any given process
+     * @param pid - the process id of the process to terminate
+    */
+    void terminateProcess(pid_t pid);
+
+    /**
+     * This method is intended to clean up all shared memory instances and processes. 
+     * It checks all a threads children.
+     * However, any pointers to memory should be deallocated before this method is called.
+    */
+   void cleanup();
 
     
 }
