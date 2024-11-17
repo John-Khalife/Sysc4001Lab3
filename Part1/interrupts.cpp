@@ -11,6 +11,7 @@
 #include <string.h>
 #include <iomanip>
 #include <memory>
+#include <cstdint>
 
 #include "interrupts.hpp"
 
@@ -18,17 +19,18 @@ using namespace std;
 
 namespace MemoryStructures
 {
-    int reserveMemory(Partition *memory, __uint8_t size, char *programName)
+    int reserveMemory(Partition *memory, uint size, pcb_t* process)
     {
         //*NOTE Partition sizes are ordered from largest to smallest - so best fit will be easy.
         //*That means however, this method may need to be updated in the future if different partitions are given.
         for (int i = PARTITION_NUM - 1; i >= 0; i--)
         {
-            if (memory[i].code == "free")
+            if (memory[i].code == -1)
             {
                 if (size <= memory[i].size)
                 {
-                    memory[i].code = programName;
+                    memory[i].code = process->pid;
+                    process->currentState = READY; // now that it is loaded, set the state to ready.
                     return i;
                 }
             }
@@ -36,23 +38,11 @@ namespace MemoryStructures
         return -1;
     }
 
-    __uint8_t getFileSize(vector<extFile> &files, char *programName)
-    {
-        for (int i = 0; i < files.size(); i++)
-        {
-            if (strcmp(programName, files[i].programName) == 0)
-            {
-                return files[i].size;
-            }
-        }
-        return 0;
-    }
-
     pcb_t *getRunningProcess(vector<pcb_t> &pcb)
     {
         for (int i = pcb.size(); i >= 0; i--)
         {
-            if (pcb[i].isRunning)
+            if (pcb[i].currentState == RUNNING)
             {
                 return &pcb[i];
             }
@@ -60,9 +50,88 @@ namespace MemoryStructures
         return NULL;
     }
 
+    void evaluateMemory(vector<pcb_t>& pcb, Partition* memory) {
+        vector<pcb_t*> loadableProcesses; //holds all loadable processes.
+        //Iterate through every single process
+        for (pcb_t p : pcb) {
+            //Check to see if it has not arrived and if the time is ready for arrival
+            if (p.currentState == NOT_ARRIVED && p.arrivalTime <= Execution::timer) {
+                p.currentState = NEW; //If so, set the process to new
+                loadableProcesses.push_back(&p);
+            } else if (p.currentState == NEW) {
+                loadableProcesses.push_back(&p);
+            }
+        }
+
+        while (!loadableProcesses.empty()) {
+            //First check if there is space
+            bool isSpace = false;
+            for (int i = 0 ; i < PARTITION_NUM ; i++) {
+                if (memory[i].code == -1) {
+                    isSpace = true;
+                }
+            }
+
+            if (!isSpace) {
+                break; //leave the loop
+            }
+
+            //Next decide what processes to load into memory - this is where scheduling strategy comes into play
+            //TODO: implement a way to choose what process to load into memory
+            
+            //Load that process into memory reservememory()
+            //Remove that process from the list - doesn't matter if the loading succeeded or failed
+        }
+    }
+
+    void processCleanup(vector<pcb_t>& pcb, Partition* memory) {
+        //find the processes who have satisfied their execution time.
+        for (pcb_t b : pcb) {
+            if (p.currentState == TERMINATED) {
+                if (p.memoryAllocated) {
+                    memory[p.memoryPartition].code = -1;
+                    p.memoryAllocated = nullptr;
+                }
+            }
+        }
+    }
 
     ExecutionOrder getExecutionOrder(std::vector<pcb_t>& pcb) {
-        return NULL;
+        vector<pcb_t*> readyProcesses; //fetch all the ready processes
+        for (pcb_t p : pcb) {
+            if (p.currentState == READY) {
+                readyProcesses.push_back(&p);
+            }
+        }
+        //TODO: Insert scheduling strategy here - should decide on a process and a time.
+        return ExecutionOrder();
+    }
+
+    void doIO(std::vector<pcb_t>& pcb, ExecutionOrder* order) {
+        if (order->nextState == WAITING) {
+            order->process->currentTime = 0;
+        }
+        order->process->currentState = order->nextState;
+        
+        //Increment waiting time for all proceses in the waiting state. Move to ready if their time has completed.
+        for (pcb_t p : pcb) {
+            if (p.currentState == WAITING) {
+                p.currentTime += order->time;
+                if (p.currentTime >= p.ioDuration) {
+                    p.currentState = READY;
+                    p.currentTime = 0;
+                }
+            }
+        }
+    }
+
+    bool processesRemain(std::vector<pcb_t>& pcb) {
+        for (pcb_t p : pcb) {
+            if (p.currentState != TERMINATED) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
@@ -110,6 +179,8 @@ namespace Parsing
                 newProcess.ioFrequency = stoi(s);
                 getline(ss, s, ' ');
                 newProcess.ioDuration = stoi(s);
+                newProcess.currentState = MemoryStructures::ProcessState::NOT_ARRIVED;
+                newProcess.currentTime = 0;
             }
             catch (const exception &e)
             {
@@ -202,36 +273,12 @@ namespace Execution
 
     void writeExecutionStep(int duration, string eventType)
     {
-        if (output.fail())
+        if (executionOutput.fail())
         {
             return;
         }
-        output << timer << ", " << duration << ", " << eventType << endl; // Write the Execution message in the proper format
+        executionOutput << timer << ", " << duration << ", " << eventType << endl; // Write the Execution message in the proper format
         timer += duration;                                                // Add the amount of timer to CPU timer for the next write
-    }
-
-    void writePcbTable(vector<MemoryStructures::pcb_t> pcb)
-    {
-        static ofstream pcbOutput(PCB_OUTPUT_FILE_NAME);
-
-        pcbOutput << "!-----------------------------------------------------------!" << endl;
-        pcbOutput << "Save Time: " << timer << " ms" << endl;
-        pcbOutput << "+----------------------------------------------+" << endl;
-        pcbOutput << "| PID | Program Name | Partition Number | Size |" << endl;
-        pcbOutput << "+----------------------------------------------+" << endl;
-        for (int i = 0; i < pcb.size(); i++)
-        {
-            pcbOutput << "| " << to_string((int)pcb[i].pid);
-            pcbOutput << string(max(3 - Parsing::numDigits((int)pcb[i].pid), 0), ' ') << " | ";
-            pcbOutput << pcb[i].programName << string((int)(12 - pcb[i].programName.length()), ' ') << " | ";
-            pcbOutput << to_string((int)pcb[i].partitionNum);
-            pcbOutput << string(16 - Parsing::numDigits((int)pcb[i].partitionNum), ' ');
-            pcbOutput << " | " << to_string((int)pcb[i].memoryAllocated);
-            pcbOutput << string(4 - Parsing::numDigits((int)pcb[i].memoryAllocated), ' ');
-            pcbOutput << " |" << endl;
-        }
-        pcbOutput << "+----------------------------------------------+" << endl;
-        pcbOutput << "!-----------------------------------------------------------!" << endl;
     }
 
     void systemCall(int duration, int isrAddress)
@@ -291,9 +338,18 @@ namespace Execution
         writeExecutionStep(1, "Load address " + text + " into the PC."); // output the address being loaded
     }
 
-    void doExecution()
-    {
-
+    void doExecution(MemoryStructures::ExecutionOrder* order)
+    {   
+        //Set to running
+        order->process->currentState = MemoryStructures::RUNNING;
+        //TODO: add the change state output here
+        //do the execution
+        executeCPU(order->time);
+        order->process->currentTime += order->time;
+        //Check the next state
+        if (order->nextState == MemoryStructures::WAITING) {
+            interrupt(order->time, 5); //TODO: Figure out what to do here
+        }
     }
 }
 
@@ -311,6 +367,10 @@ int main(int argc, char *argv[])
     // Initialize memory partitions with the proper sizes.
     using namespace MemoryStructures;
     Partition *memory = new Partition[PARTITION_NUM];
+    if (memory == nullptr) {
+        cout << "Failed to allocate memory" << endl;
+        return 1;
+    }
     for (int i = 0; i < PARTITION_NUM; i++)
     {
         memory[i] = (Partition){.partitionNum = __uint8_t(i + 1), .size = __uint8_t(PARTITION_SIZES[i]), .code = -1};
@@ -321,16 +381,14 @@ int main(int argc, char *argv[])
     // Loop continues while there are still processes to run in the pcb.
     // Get the process that should be run right now. from the pcb
     // Start executing that and continue to check for the best process to run.
-    PcbEntry *currentProcess = getRunningProcess(pcb);
-    while (currentProcess != NULL)
+    ExecutionOrder order = getExecutionOrder(pcb);
+    while (processesRemain(pcb))
     {
-        Execution::doExecute(); //execute for somuch time.
-        //TODO: find some way to account for IO waiting time - increment IO counters here.
-        PcbEntry* newProcess = getRunningProcess(pcb); // check to see if a new process needs to be run
-        if (newProcess != currentProcess)
-        { //TODO: Do whatever needs to be done for a context switch
-            currentProcess = newProcess;
-        }
+        evaluateMemory(pcb,memory); //handles NOT_ARRIVED and NEW to READY (loading to memory)
+        ExecutionOrder order = getExecutionOrder(pcb);
+        Execution::doExecution(&order); //handles READY to RUNNING
+        doIO(pcb,&order); //handles RUNNING to WAITING or READY
+        processCleanup(pcb,memory); // handles TERMINATION and deloading from memory
     }
 
     // Cleanup

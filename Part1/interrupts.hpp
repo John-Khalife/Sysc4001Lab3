@@ -26,6 +26,16 @@ namespace MemoryStructures {
         int code; //holds the PID
     } typedef part_t;
 
+    //These hold the current process state
+    enum ProcessState {
+        NEW,
+        READY,
+        WAITING,
+        RUNNING,
+        TERMINATED,
+        NOT_ARRIVED
+    };
+
     //This structure represents a single PCB entry.
     struct PcbEntry {
         uint pid;
@@ -34,35 +44,46 @@ namespace MemoryStructures {
         uint totalCPUTime;
         uint ioFrequency;
         uint ioDuration;
-        std::string programName;
-        __uint8_t partitionNum; 
-        __uint8_t memoryAllocated;
+        Partition* memoryAllocated;
+        ProcessState currentState;
+        uint currentTime;
+
     } typedef pcb_t;
+
+    
 
     //This structure represents an execution order
     //It is responsible for stating what process should be executed and for how long
     struct ExecutionOrder {
         pcb_t* process;
         int time;
+        ProcessState nextState;
     };
 
     /**
-     * This function reserves the memory.
+     * This function reserves the memory. by best fit
      * @param memory - pointer to the memory object
      * @param partitionNum - parition number
      * @param programName - what the partition is reserved for.
      * @return - a partition number
      * @
     */
-    int reserveMemory(Partition* memory, __uint8_t size, std::string programName);
+    int reserveMemory(Partition *memory, uint size, pcb_t process);
 
     /**
-     * This function searches the file linked list for the size of a file
-     * @param head - the structure containing all files
-     * @param programName - the name of the program
-     * @return an integer representing the size of the program.
+     * This function evaluates the memory and decides what processes to load into main memory. 
+     * It also is responsible for changing state from NOT_ARRIVED to NEW and NEW to ready.
+     * @param pcb - the pcb table
+     * @param memory - the memory array
     */
-   __uint8_t getFileSize(std::shared_ptr<extFile>& head, char* programName);
+    void evaluateMemory(std::vector<pcb_t>& pcb, Partition* memory);
+
+    /**
+     * This function is intended for checking when a process should be terminated, as well as deloading it from memory.evaluateMemory
+     * @param pcb
+     * @param memory - the memory array
+    */
+    void processCleanup(std::vector<pcb_t>& pcb, Partition* memory);
 
     /**
      * This function is responsible for returning an execution order. It states what process should run and for how long.
@@ -77,6 +98,20 @@ namespace MemoryStructures {
      * @return a pointer to the running process
     */
     pcb_t* getRunningProcess(std::vector<pcb_t>& pcb);
+
+    /**
+     * This function is responsible for simulating IO. It transitions out of and into the waiting state
+     * @param pcb - the pcb table
+     * @param order - the execution order
+    */
+    void doIO(std::vector<pcb_t>& pcb, ExecutionOrder* order);
+
+    /**
+     * This function is responsible for returning true if there are still processes to run.
+     * @param pcb - the pcb table
+     * @return true if there are processes to run, false otherwise.
+     */
+    bool processesRemain(std::vector<pcb_t>& pcb);
 }
 
 
@@ -134,7 +169,6 @@ namespace Parsing {
 
 //All functions in this namespace are responsible for execution
 namespace Execution {
-
     int timer = 0; //Necessary for keeping track of the program time over multiple functions within execution
     std::ofstream executionOutput; //output object for the main output file
     std::ofstream memoryStatusOutput; //output object for the memoryStatus.
