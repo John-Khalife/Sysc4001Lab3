@@ -99,8 +99,8 @@ namespace ProcessManagement {
         }
     }
 
-    int createSemaphore(int key, int initialValue) {
-        int sem_id = semget(key, 1, IPC_CREAT | 0666); //actually makes the sesmaphore
+    int createSemaphore(int key, int initialValue, int length) {
+        int sem_id = semget(key, length, IPC_CREAT | 0666); //actually makes the sesmaphore
         if (sem_id < 0) {
             perror("Failed to create semaphore");
         } else {
@@ -114,9 +114,9 @@ namespace ProcessManagement {
         return sem_id;
     }
 
-    void incrementSemaphore(int sem_id) {
+    void incrementSemaphore(int sem_id, int index) {
         struct sembuf sb;
-        sb.sem_num = 0;
+        sb.sem_num = index;
         sb.sem_op = 1;
         sb.sem_flg = 0;
         if (semop(sem_id, &sb, 1) < 0) {
@@ -124,9 +124,9 @@ namespace ProcessManagement {
         }
     }
 
-    void decrementSemaphore(int sem_id) {
+    void decrementSemaphore(int sem_id, int index) {
         struct sembuf sb;
-        sb.sem_num = 0;
+        sb.sem_num = index;
         sb.sem_op = -1;
         sb.sem_flg = 0;
         if (semop(sem_id, &sb, 1) < 0) {

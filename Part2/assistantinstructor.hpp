@@ -61,19 +61,19 @@ namespace ProcessManagement {
      * @param initialValue - the initial value of the semaphore
      * @return int - the id of the created semaphore
      */
-    int createSemaphore(int key, int initialValue);
+    int createSemaphore(int key, int initialValue, int length);
 
     /**
      * This method is responsible for telling a semaphore to wait
      * @param sem_id - the id of the semaphore to decrement
     */
-    void decrementSemaphore(int sem_id);
+    void decrementSemaphore(int sem_id, int index);
 
     /**
      * This method is responsible for incrementing a semaphore - telling processes to continuess
      * @param sem_id - the id of the semaphore to increment
     */
-    void incrementSemaphore(int sem_id);
+    void incrementSemaphore(int sem_id, int index);
 
 
     /**
