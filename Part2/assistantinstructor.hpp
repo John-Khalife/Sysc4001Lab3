@@ -16,6 +16,8 @@ namespace ProcessManagement {
     std::unordered_set<pid_t> processSet;
     //This set will hold every shared memory segment key created by the running process
     std::unordered_set<int> shmSet;
+    //This set will hold every semaphore id created by the running process
+    std::unordered_set<int> semSet;
 
     /**
      * This method is responsible for creating processes
@@ -53,6 +55,33 @@ namespace ProcessManagement {
      * @param pid - the process id of the process to terminate
     */
     void terminateProcess(pid_t pid);
+
+    /**
+     * This method creates a semaphore and returns its id.
+     * @param key - the key of the semaphore
+     * @param initialValue - the initial value of the semaphore
+     * @return int - the id of the created semaphore
+     */
+    int createSemaphore(int key, int initialValue);
+
+    /**
+     * This method is responsible for telling a semaphore to wait
+     * @param sem_id - the id of the semaphore to decrement
+    */
+    void decrementSemaphore(int sem_id);
+
+    /**
+     * This method is responsible for incrementing a semaphore - telling processes to continues
+     * @param sem_id - the id of the semaphore to increment
+    */
+    void incrementSemaphore(int sem_id);
+
+
+    /**
+     * This method is resonpsible for removing a semaphore
+     * @param sem_id - the id of the semaphore to remove
+    */
+    void removeSemaphore(int sem_id);
 
     /**
      * This method is intended to clean up all shared memory instances and processes. 

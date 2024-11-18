@@ -10,10 +10,19 @@
 #include <csignal>
 #include <sys/shm.h>
 #include "assistantinstructor.hpp"
+#include <sys/sem.h>
 
 
 
 namespace ProcessManagement {
+
+    //This union is used for passing values to the semctl function
+    union semun {
+        int val;
+        struct semid_ds *buf;
+        unsigned short *array;
+    };
+
     void createProcesses(int processNum) {
         //create a boolean
         int bool_id = createSharedMemory(1234,sizeof(bool));
@@ -91,6 +100,49 @@ namespace ProcessManagement {
         }
     }
 
+    int createSemaphore(int key, int initialValue) {
+        int sem_id = semget(key, 1, IPC_CREAT | 0666); //actually makes the sesmaphore
+        if (sem_id < 0) {
+            perror("Failed to create semaphore");
+        } else {
+            union semun arg;
+            arg.val = initialValue;
+            if (semctl(sem_id, 0, SETVAL, arg) < 0) {
+                perror("Failed to set semaphore value");
+            }
+        }
+        semSet.insert(sem_id); //add the semaphore to the set
+        return sem_id;
+    }
+
+    void incrementSemaphore(int sem_id) {
+        struct sembuf sb;
+        sb.sem_num = 0;
+        sb.sem_op = 1;
+        sb.sem_flg = 0;
+        if (semop(sem_id, &sb, 1) < 0) {
+            perror("Failed to increment semaphore");
+        }
+    }
+
+    void decrementSemaphore(int sem_id) {
+        struct sembuf sb;
+        sb.sem_num = 0;
+        sb.sem_op = -1;
+        sb.sem_flg = 0;
+        if (semop(sem_id, &sb, 1) < 0) {
+            perror("Failed to decrement semaphore");
+        }
+    }
+
+    void removeSemaphore(int sem_id) {
+        semctl(sem_id, 0, IPC_RMID);
+        if (semSet.find(sem_id) != semSet.end()) {
+            semSet.erase(sem_id);
+        }
+    }
+
+
     void cleanup() {
         //Start by iterating through the process set.
         //This set should contain all of the children processes created by the calling process.
@@ -101,7 +153,13 @@ namespace ProcessManagement {
         for (int i : shmSet) {
             deallocateSharedMemory(i);
         }
+        //Finally remove all semaphores
+        for (int i : semSet) {
+            semctl(i, 0, IPC_RMID);
+        }
     }
+
+
 
 }
 
