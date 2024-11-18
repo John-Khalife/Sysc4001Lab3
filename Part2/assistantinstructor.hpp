@@ -71,7 +71,7 @@ namespace ProcessManagement {
     void decrementSemaphore(int sem_id);
 
     /**
-     * This method is responsible for incrementing a semaphore - telling processes to continues
+     * This method is responsible for incrementing a semaphore - telling processes to continuess
      * @param sem_id - the id of the semaphore to increment
     */
     void incrementSemaphore(int sem_id);
