@@ -7,11 +7,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <iostream>
+#include <fstream>
 #include <csignal>
 #include <sys/shm.h>
 #include "assistantinstructor.hpp"
 #include <sys/sem.h>
-
+#include <sstream>
 
 
 namespace ProcessManagement {
@@ -142,7 +143,9 @@ namespace ProcessManagement {
     }
 
 
-    void cleanup() {
+    void cleanup(int signalNumber) {
+        std::cout<<"Ending program with signal number " << signalNumber << "." << std::endl;
+        std::cout<<"Cleaning up processes and shared memory."<< std::endl;
         //Start by iterating through the process set.
         //This set should contain all of the children processes created by the calling process.
         for (std::pair<int,int> i : shmSet) {
@@ -163,6 +166,52 @@ namespace ProcessManagement {
     }
 }
 
+
+namespace TAManagement {
+    int loadDatabase(std::string fileName) {
+        //Create the shared memory - 0 - 9999 student numbers can be stored
+        int shm_id = ProcessManagement::createSharedMemory(1234, 10000 * sizeof(int));
+        //Attach the shared memory (for now)
+        std::vector<int>* database = (std::vector<int>*) ProcessManagement::getSharedMemory(shm_id);
+        //open the file
+        std::ifstream file;
+        try {
+            file.open(fileName);
+        } catch (std::exception e) {
+            std::cout << "Failed to open file." << std::endl;
+            exit(1);
+        }
+
+        while (!file.eof()) {
+            //Read the file line by line
+            std::string line;
+            std::getline(file,line);
+
+            //Split the line by commas
+            std::string s;
+            std::stringstream ss(line);
+
+            while (!ss.eof()) {
+                getline(ss,s, ',');
+                //TODO: add the student number to the database + whatever other information needs to be stored
+            }
+        }
+
+        return shm_id;
+    }
+
+
+    void markStudent(int studentNumber, int mark) {
+
+    }
+
+
+}
+    //This is the main function that will be called
+
+
+
+
 int main(int argc, char* argv[]) {
     /*
      * My Idea for the structure
@@ -170,8 +219,19 @@ int main(int argc, char* argv[]) {
      - It will be responsible for ending the program.
     */
 
-    //Save the controller process id
-    const pid_t ORIGINAL_PID = getpid();
+   //! program pseudocode/not really pseudocode
+   //Save the controller process id
+    const pid_t MANAGER_PID = getpid();
+   //Add a signal handler for when the manager process is terminated (to automatically call cleanup)
+   signal(SIGINT, ProcessManagement::cleanup);
+
+   //First the student database needs to be loaded into shared memory.
+   //*int database_id = TAManagement::loadDatabase("student_database.txt");
+
+   
+
+    //!Test starts here
+    
 
     //Create all the processes
     ProcessManagement::createProcesses(5);
@@ -180,8 +240,7 @@ int main(int argc, char* argv[]) {
     std::cout<< "I am process " << getpid() << "." << std::endl;
 
     //Cleanup all the processes - called by OG process
-    if (getpid() == ORIGINAL_PID) {
-        ProcessManagement::cleanup();
+    if (getpid() == MANAGER_PID) {
         exit(0);
     }
 
@@ -192,5 +251,7 @@ int main(int argc, char* argv[]) {
         std::cout << "I am still alive." << std::endl;
     }
 }
+
+
 
 

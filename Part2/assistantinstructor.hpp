@@ -90,3 +90,21 @@ namespace ProcessManagement {
    void cleanup();
 }
 
+//This namespace is responsible for the implementation of the TA management system
+namespace TAManagement{
+
+    /**
+     * This method is responsible for loading the database from a file into shared memory
+     * *This function should be called by the manager process
+    */
+    int loadDatabase(std::string fileName);
+
+    /**
+     * This method is responsible for marking a student in the database and printing it out to the file
+     * *To be called by TA processes
+     * @param studentNumber - the student number to mark
+     * @param mark - the mark to give the student
+    */
+    void markStudent(int studentNumber, int mark);
+}
+
