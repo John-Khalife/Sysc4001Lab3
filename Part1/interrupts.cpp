@@ -86,10 +86,10 @@ namespace MemoryStructures
 
     void processCleanup(vector<pcb_t>& pcb, Partition* memory) {
         //find the processes who have satisfied their execution time.
-        for (pcb_t b : pcb) {
+        for (pcb_t p : pcb) {
             if (p.currentState == TERMINATED) {
                 if (p.memoryAllocated) {
-                    memory[p.memoryPartition].code = -1;
+                    p.memoryAllocated->code = -1;
                     p.memoryAllocated = nullptr;
                 }
             }
@@ -125,13 +125,82 @@ namespace MemoryStructures
         }
     }
 
-    bool processesRemain(std::vector<pcb_t>& pcb) {
+    bool processesRemain(vector<pcb_t>& pcb) {
         for (pcb_t p : pcb) {
             if (p.currentState != TERMINATED) {
                 return true;
             }
         }
         return false;
+    }
+
+    pcb_t* schedulerFCFS(vector<pcb_t>& pcb, bool loadMem) {
+        ProcessState currentState;
+        ProcessState nextState;
+        
+        if (loadMem) {
+            currentState = NEW;
+            nextState = READY;
+        } else {
+            currentState = READY;
+            nextState = RUNNING;
+        }
+        pcb_t* firstProcess = &pcb.front();
+        for (pcb_t i : pcb) {
+            if (i.currentState == currentState) {
+                if (i.arrivalTime < firstProcess->arrivalTime) {
+                    firstProcess = &i;
+                }
+            }
+        }
+        return firstProcess;
+    }
+
+
+    pcb_t* schedulerEP(vector<pcb_t>& pcb, bool loadMem) {
+        ProcessState currentState;
+        ProcessState nextState;
+        
+        if (loadMem) {
+            currentState = NEW;
+            nextState = READY;
+        } else {
+            currentState = READY;
+            nextState = RUNNING;
+        }
+
+
+        //! external priority: 
+
+
+        pcb_t* firstProcess = &pcb.front();
+        for (pcb_t i : pcb) {
+            if (i.currentState == currentState) {
+                if (i.arrivalTime < firstProcess->arrivalTime) {
+                    firstProcess = &i;
+                }
+            }
+        }
+        return firstProcess;
+    }
+
+
+    pcb_t* schedulerRR(vector<pcb_t>& pcb, bool loadMem) {
+        ProcessState currentState = READY;
+        ProcessState nextState = RUNNING;
+        
+        if (loadMem) {
+            return schedulerFCFS(pcb, loadMem);
+        }
+
+        pcb_t placeholder = pcb.front();
+        for (pcb_t i : pcb) {
+            if (i.currentState == currentState) {
+                placeholder = i;
+                pcb.remove(i);
+            }
+        }
+        return placeholder;
     }
 }
 
@@ -243,14 +312,7 @@ namespace Parsing
         return static_cast<int>(log10(abs(number)) + 1);
     }
 
-    /**
-     * function to set the input file
-     */
-    void setInput(string fileName)
-    {
-        input.close();
-        input.open(fileName);
-    }
+
 }
 
 namespace Execution
@@ -352,6 +414,13 @@ namespace Execution
         }
     }
 }
+
+void schedulerFCFS()
+{
+    
+}
+
+
 
 int main(int argc, char *argv[])
 {

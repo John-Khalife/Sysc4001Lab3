@@ -18,6 +18,7 @@ namespace MemoryStructures {
 
     const int PARTITION_SIZES[] = {40,25,15,10,8,2};
     const int PARTITION_NUM = 6; 
+    const int QUANTUM = 100; //The time quantum for the round robin scheduler
 
     //This structure represents a single partition
     struct Partition {
@@ -112,6 +113,9 @@ namespace MemoryStructures {
      * @return true if there are processes to run, false otherwise.
      */
     bool processesRemain(std::vector<pcb_t>& pcb);
+
+
+
 }
 
 
