@@ -12,12 +12,11 @@
  * This namespace is intended to be used for process management.
 */
 namespace ProcessManagement {
-    //This set will hold all the ids of every process created by the running process
-    std::unordered_set<pid_t> processSet;
-    //This set will hold every shared memory segment key created by the running process
-    std::unordered_set<int> shmSet;
-    //This set will hold every semaphore id created by the running process
-    std::unordered_set<int> semSet;
+    //This set will hold all the ids of every process,semaphore, and shared memory created by the running process
+    std::unordered_set<std::pair<int, int> > shmSet;
+    const int PROCESS_VALUE = 0;
+    const int SHM_VALUE = 1;
+    const int SEMAPHORE_VALUE = 2;
 
     /**
      * This method is responsible for creating processes

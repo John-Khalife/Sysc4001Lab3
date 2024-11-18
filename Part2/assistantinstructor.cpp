@@ -35,8 +35,7 @@ namespace ProcessManagement {
 
             //Make sure the child process exits the loop so there is no exponential growth of processes
             if (pid == 0) {
-                //wipe the shared memory and process sets so that the created process can have its own children and shared memory
-                processSet.clear();
+                //wipe the object set so the new process can have it's own objects
                 shmSet.clear();
                 isFinished = (bool*) getSharedMemory(bool_id); //attach this value to the process
                 break;
@@ -46,7 +45,7 @@ namespace ProcessManagement {
                 exit(1);
             } else {
                 std::cout << "Created process " << i << " with pid " << pid << "." << std::endl;
-                processSet.insert(pid);
+                shmSet.insert(std::pair<int,int>(PROCESS_VALUE,pid));
                 //Now check if the loop is over
                 if (i == processNum - 1) {
                     (*isFinished) = true;
@@ -63,7 +62,7 @@ namespace ProcessManagement {
     int createSharedMemory(int key, int size) {
         int shm_id = shmget(key,size, IPC_CREAT | 0666); 
         if (shm_id < 0) {perror("Failed shared memory allocation.");}
-        shmSet.insert(shm_id);
+        shmSet.insert(std::pair<int,int>(SHM_VALUE,shm_id));
         return shm_id;
     }
 
@@ -80,8 +79,8 @@ namespace ProcessManagement {
     void deallocateSharedMemory(int shmid) {
         shmctl(shmid, IPC_RMID, NULL); //queue for deallocation
         //Make sure that the id specified is in the shmset before attempting to remove
-        if (shmSet.find(shmid) != shmSet.end()) {
-            shmSet.erase(shmid);
+        if (shmSet.find(std::pair<int,int>(SHM_VALUE,shmid)) != shmSet.end()) {
+            shmSet.erase(std::pair<int,int>(SHM_VALUE,shmid));
         }
     }
 
@@ -111,7 +110,7 @@ namespace ProcessManagement {
                 perror("Failed to set semaphore value");
             }
         }
-        semSet.insert(sem_id); //add the semaphore to the set
+        shmSet.insert(std::pair<int,int>(SEMAPHORE_VALUE,sem_id)); //add the semaphore to the set
         return sem_id;
     }
 
@@ -137,8 +136,8 @@ namespace ProcessManagement {
 
     void removeSemaphore(int sem_id) {
         semctl(sem_id, 0, IPC_RMID);
-        if (semSet.find(sem_id) != semSet.end()) {
-            semSet.erase(sem_id);
+        if (shmSet.find(std::pair<int,int>(SEMAPHORE_VALUE,sem_id)) != shmSet.end()) {
+            shmSet.erase(std::pair<int,int>(SEMAPHORE_VALUE,sem_id));
         }
     }
 
@@ -146,23 +145,23 @@ namespace ProcessManagement {
     void cleanup() {
         //Start by iterating through the process set.
         //This set should contain all of the children processes created by the calling process.
-        for (pid_t i : processSet) {
-            terminateProcess(i);
-        }
-        //Then deallocate all shared memory
-        for (int i : shmSet) {
-            deallocateSharedMemory(i);
-        }
-        //Finally remove all semaphores
-        for (int i : semSet) {
-            semctl(i, 0, IPC_RMID);
+        for (std::pair<int,int> i : shmSet) {
+            switch (i.first)
+            {
+            case PROCESS_VALUE:
+                terminateProcess(i.second);
+                break;
+            case SEMAPHORE_VALUE:
+                deallocateSharedMemory(i.second);
+                break;
+            case SHM_VALUE:
+                semctl(i.second, 0, IPC_RMID);
+                break;
+
+            }
         }
     }
-
-
-
 }
-
 
 int main(int argc, char* argv[]) {
     /*
@@ -193,4 +192,5 @@ int main(int argc, char* argv[]) {
         std::cout << "I am still alive." << std::endl;
     }
 }
+
 
