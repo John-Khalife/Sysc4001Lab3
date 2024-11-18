@@ -228,10 +228,7 @@ int main(int argc, char* argv[]) {
    //First the student database needs to be loaded into shared memory.
    //*int database_id = TAManagement::loadDatabase("student_database.txt");
 
-   
-
-    //!Test starts here
-    
+    //!Test starts here    
 
     //Create all the processes
     ProcessManagement::createProcesses(5);
