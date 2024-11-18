@@ -40,6 +40,7 @@ namespace MemoryStructures {
     //This structure represents a single PCB entry.
     struct PcbEntry {
         uint pid;
+        uint priority;
         uint memorySize;
         uint arrivalTime;
         uint totalCPUTime;

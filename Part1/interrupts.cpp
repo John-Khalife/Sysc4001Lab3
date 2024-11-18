@@ -135,72 +135,73 @@ namespace MemoryStructures
     }
 
     pcb_t* schedulerFCFS(vector<pcb_t>& pcb, bool loadMem) {
-        ProcessState currentState;
-        ProcessState nextState;
+        ProcessState currentState = READY;
         
         if (loadMem) {
             currentState = NEW;
-            nextState = READY;
-        } else {
-            currentState = READY;
-            nextState = RUNNING;
         }
+        
         pcb_t* firstProcess = &pcb.front();
+        bool processFound = false;
         for (pcb_t i : pcb) {
             if (i.currentState == currentState) {
+                processFound = true;
                 if (i.arrivalTime < firstProcess->arrivalTime) {
                     firstProcess = &i;
                 }
             }
         }
-        return firstProcess;
+        if (processFound)
+        {
+            return firstProcess;
+        }
+        return nullptr;
+        
     }
 
 
     pcb_t* schedulerEP(vector<pcb_t>& pcb, bool loadMem) {
-        ProcessState currentState;
-        ProcessState nextState;
-        
-        if (loadMem) {
-            currentState = NEW;
-            nextState = READY;
-        } else {
-            currentState = READY;
-            nextState = RUNNING;
-        }
-
-
-        //! external priority: 
-
-
-        pcb_t* firstProcess = &pcb.front();
-        for (pcb_t i : pcb) {
-            if (i.currentState == currentState) {
-                if (i.arrivalTime < firstProcess->arrivalTime) {
-                    firstProcess = &i;
-                }
-            }
-        }
-        return firstProcess;
-    }
-
-
-    pcb_t* schedulerRR(vector<pcb_t>& pcb, bool loadMem) {
         ProcessState currentState = READY;
-        ProcessState nextState = RUNNING;
         
         if (loadMem) {
             return schedulerFCFS(pcb, loadMem);
         }
 
-        pcb_t placeholder = pcb.front();
+        pcb_t* firstProcess = &pcb.front();
+        bool processFound = false;
         for (pcb_t i : pcb) {
             if (i.currentState == currentState) {
-                placeholder = i;
-                pcb.remove(i);
+                if (i.priority < firstProcess->priority) {
+                    firstProcess = &i;
+                }
             }
         }
-        return placeholder;
+        if (processFound)
+        {
+            return firstProcess;
+        }
+        return nullptr;
+    }
+
+
+    pcb_t* schedulerRR(vector<pcb_t>& pcb, bool loadMem) {       
+        if (loadMem) {
+            return schedulerFCFS(pcb, loadMem);
+        }
+        for (pcb_t i : pcb) {
+            if (i.currentState == READY) {
+                pcb.push_back(i);
+                for (int j = 0 ; j < pcb.size() ; j++) {
+                    if (pcb[j].pid == i.pid) {
+                        pcb.erase(pcb.begin() + j);
+                        break;
+                    }
+                }
+                return &i;
+                
+            }
+        }
+        return nullptr;
     }
 }
 
@@ -343,61 +344,29 @@ namespace Execution
         timer += duration;                                                // Add the amount of timer to CPU timer for the next write
     }
 
-    void systemCall(int duration, int isrAddress)
+    void writeMemoryStatus(MemoryStructures::Partition *memory)
     {
-        accessVectorTable(isrAddress);
-
-        default_random_engine generator;                                        // generates uniformly distributed numbers
-        generator.seed(time(0));                                                // Give the generator a seed
-        uniform_real_distribution<> isrDistribution(0, 0.25);                   // probability distribution for 0-25% of the duration.
-        int dataTransferTime = (int)duration * isrDistribution(generator) + 1;  // time for data transfer
-        int errorCheckingTime = (int)duration * isrDistribution(generator) + 1; // generate time for error checking
-
-        // Call the device driver
-        writeExecutionStep(duration - dataTransferTime - errorCheckingTime, "SYSCALL: Execute ISR.");
-        writeExecutionStep(dataTransferTime, "Transfer data.");     // transfer data
-        writeExecutionStep(errorCheckingTime, "Check for errors."); // Error check
-        writeExecutionStep(1, "IRET");                              // Interrupt return.
-    }
-
-    void executeCPU(int duration)
-    {
-        writeExecutionStep(duration, "CPU Execution.");
-    }
-
-    void interrupt(int duration, int isrAddress)
-    {
-        writeExecutionStep(1, "Check priority of interrupt.");
-        writeExecutionStep(1, "Check if interrupt is masked.");
-        accessVectorTable(isrAddress);
-        writeExecutionStep(duration, "END_IO");
-        writeExecutionStep(1, "IRET"); // Interrupt return.
-    }
-
-    void accessVectorTable(int isrAddress)
-    {
-        default_random_engine generator;                                 // generates uniformly distributed numbers
-        generator.seed(time(0));                                         // Give the generator a seed
-        uniform_int_distribution<int> contextSaveTimeDistribution(1, 3); // Create a distribution
-
-        // First switch to kernel mode
-        writeExecutionStep(1, "Switch CPU to Kernel mode.");
-
-        using namespace std;
-        writeExecutionStep(contextSaveTimeDistribution(generator), "Context saved."); // Save context
-
-        // Check vector table and call ISR
-        ifstream file;
-        string text;
-
-        writeExecutionStep(1, "Find vector " + to_string(isrAddress) + " in memory position " + Parsing::integerToHexString(isrAddress) + ".");
-        file.open("vector_table.txt");
-        for (int i = 0; i <= isrAddress; i++)
+        if (memoryStatusOutput.fail())
         {
-            getline(file, text);
+            return;
         }
-        file.close();                                                    // Now the text string should contain the ISR.
-        writeExecutionStep(1, "Load address " + text + " into the PC."); // output the address being loaded
+        memoryStatusOutput << "Time " << timer << ": ";
+        for (int i = 0; i < MemoryStructures::PARTITION_NUM; i++)
+        {
+            if (memory[i].code == -1)
+            {
+                memoryStatusOutput << "Free ";
+            }
+            else
+            {
+                memoryStatusOutput << "P" << memory[i].code;
+            }
+            if (i != MemoryStructures::PARTITION_NUM - 1)
+            {
+                memoryStatusOutput << ", ";
+            }
+        }
+        memoryStatusOutput << endl;
     }
 
     void doExecution(MemoryStructures::ExecutionOrder* order)
