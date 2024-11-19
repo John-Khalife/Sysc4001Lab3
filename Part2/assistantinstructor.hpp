@@ -12,8 +12,22 @@
  * This namespace is intended to be used for process management.
 */
 namespace ProcessManagement {
+
+    //This hash function is used for hashing pairs
+    struct pair_hash {
+        //The hash can contain any class
+        template <class T1, class T2>
+        //The hash function - hash the indivisual elements, then xor them together
+        std::size_t operator()(const std::pair<T1, T2>& p) const {
+            std::size_t hash1 = std::hash<T1>()(p.first);
+            std::size_t hash2 = std::hash<T2>()(p.second);
+            return (hash1 << 4) ^ (hash2 << 2);
+        }
+    };
+
     //This set will hold all the ids of every process,semaphore, and shared memory created by the running process
-    std::unordered_set<std::pair<int, int> > shmSet;
+    std::unordered_set<std::pair<int, int>,pair_hash> shmSet;
+    //These are constants for marking types of objects used in the shmSet.
     const int PROCESS_VALUE = 0;
     const int SHM_VALUE = 1;
     const int SEMAPHORE_VALUE = 2;
@@ -82,12 +96,31 @@ namespace ProcessManagement {
     */
     void removeSemaphore(int sem_id);
 
+    void throwError(std::string message);
+
     /**
      * This method is intended to clean up all shared memory instances and processes. 
      * It checks all a threads children.
      * However, any pointers to memory should be deallocated before this method is called.
     */
-   void cleanup();
+   void signalCleanup(int signalNumber);
+
+    /**
+     * This method is responsible for cleaning up all shared memory and processes,
+     * when the program shuts down normally
+    */
+   void normalCleanup();
+
+    /**
+     * This method is responsible for cleaning up all shared memory and processes,
+     * when the program shuts down.
+    */
+   void cleanup(int signalNumber);
+
+    /**
+     * This method is responsible for checking to see if errors have occured in a child process. If so, call the cleanup.
+    */
+   void handleChildProcessError();
 }
 
 //This namespace is responsible for the implementation of the TA management system
