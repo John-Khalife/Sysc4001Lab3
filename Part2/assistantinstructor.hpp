@@ -5,13 +5,29 @@
 */
 
 
+
+
+#ifndef __ASSISTANTINSTRUCTOR_HPP__
+#define __ASSISTANTINSTRUCTOR_HPP__
+
 //Imports
 #include <unordered_set>
+#include <functional> 
+#include <vector>
+#include <string>
 
 /**
  * This namespace is intended to be used for process management.
 */
 namespace ProcessManagement {
+
+    // This union is used for passing values to the semctl function
+    union semun
+    {
+        int val;
+        struct semid_ds *buf;
+        unsigned short *array;
+    };
 
     //This hash function is used for hashing pairs
     struct pair_hash {
@@ -34,9 +50,8 @@ namespace ProcessManagement {
 
     /**
      * This method is responsible for creating processes
-     * @param processNum - the number of processes to be created.
     */
-    void createProcesses(int processNum);
+    void createProcess();
 
     /**
      * This method allocates shared memory and returns an id. It does the error handling
@@ -78,24 +93,17 @@ namespace ProcessManagement {
     int createSemaphore(int key, int initialValue, int length);
 
     /**
-     * This method is responsible for telling a semaphore to wait
-     * @param sem_id - the id of the semaphore to decrement
+     * This method is responsible for performing semaphore operations
+     * @param sem_id - the id of the semaphore
+     * @param index - the index of the semaphore
+     * @param operation - the operation to perform
     */
-    void decrementSemaphore(int sem_id, int index);
+    void semaphoreOperation(int sem_id, int index, int operation);
 
     /**
-     * This method is responsible for incrementing a semaphore - telling processes to continuess
-     * @param sem_id - the id of the semaphore to increment
+     * This method is responsible for throwing an error and exiting the process
+     * @param message - the message to print before exiting
     */
-    void incrementSemaphore(int sem_id, int index);
-
-
-    /**
-     * This method is resonpsible for removing a semaphore
-     * @param sem_id - the id of the semaphore to remove
-    */
-    void removeSemaphore(int sem_id);
-
     void throwError(std::string message);
 
     /**
@@ -125,12 +133,22 @@ namespace ProcessManagement {
 
 //This namespace is responsible for the implementation of the TA management system
 namespace TAManagement{
+    const int LOOP_NUM = 3; //The number of times a TA should loop through the database
+    const int NUM_TA = 3; //The number of TA's to create
+
+    //This structure is responsible for holding information about a TA's state
+    struct TAState{
+        int loopNum; // The number of times this TA has looped through the database
+        pid_t pid; //The id of the process associated with this TA.
+        int index; //The index that the TA is currently at in the student database
+    };
 
     /**
      * This method is responsible for loading the database from a file into shared memory
      * *This function should be called by the manager process
+     * @return a pointer to the integer array
     */
-    int loadDatabase(std::string fileName);
+    int* loadDatabase(std::string fileName);
 
     /**
      * This method is responsible for marking a student in the database and printing it out to the file
@@ -138,6 +156,33 @@ namespace TAManagement{
      * @param studentNumber - the student number to mark
      * @param mark - the mark to give the student
     */
-    void markStudent(int studentNumber, int mark);
+    void markStudent(int studentNumber, int mark, int sem_id);
+
+    /**
+     * This method is responsible for creating processes and associating them with
+     * TA objects.
+     * *To be called by the manager process.
+    */
+    int createAssistantInstructors(int numTAs);
+
+    /**
+     * This function returns true if the looping is completed
+     * *To be called by a TA process
+     * @return a boolean that states whether or not the loop is completed
+    */
+    bool loopCompleted(TAState* TAStates);
+
+    /**
+     * This function increments the loop number of the TA
+     * *To be called by a TA process
+    */
+    void incrementLoopNum(TAState* TAStates);
+
+    /**
+     * This function returns the number of the TA
+     * *To be called by a TA process
+    */
+    int getTANumber(TAState* TAStates);
 }
 
+#endif
