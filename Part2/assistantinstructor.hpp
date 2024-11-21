@@ -57,9 +57,32 @@ namespace ProcessManagement {
      * This method allocates shared memory and returns an id. It does the error handling
      * @param size: the size of the shared memory
      * @param key: the key of the shared memory
-     * @return int - the pointer of the shared memory
     */
-    void* createSharedMemory(int key, int size);
+    int createSharedMemory(int key, int size);
+
+    /**
+     * This method returns attatches the current process to shared memory and returns a pointer
+     * @param shm_id the id of the shared memory.
+    */
+    void* getSharedMemory(int shm_id);
+
+    /**
+     * This method queues shared memory for deletion
+     * @param shmid - the id of the shared memory
+    */
+    void deallocateSharedMemory(int shmid);
+
+    /**
+     * This method detatches shared memory pointer from the current process
+     * @param ptr - a pointer to the shared memory
+    */
+    void detachSharedMemory(void* ptr);
+
+    /**
+     * This method is responsible for terminating any given process
+     * @param pid - the process id of the process to terminate
+    */
+    void terminateProcess(pid_t pid);
 
     /**
      * This method creates a semaphore and returns its id.
@@ -101,6 +124,11 @@ namespace ProcessManagement {
      * when the program shuts down.
     */
    void cleanup(int signalNumber);
+
+    /**
+     * This method is responsible for checking to see if errors have occured in a child process. If so, call the cleanup.
+    */
+   void handleChildProcessError();
 }
 
 //This namespace is responsible for the implementation of the TA management system
@@ -129,6 +157,32 @@ namespace TAManagement{
      * @param mark - the mark to give the student
     */
     void markStudent(int studentNumber, int mark, int sem_id);
+
+    /**
+     * This method is responsible for creating processes and associating them with
+     * TA objects.
+     * *To be called by the manager process.
+    */
+    int createAssistantInstructors(int numTAs);
+
+    /**
+     * This function returns true if the looping is completed
+     * *To be called by a TA process
+     * @return a boolean that states whether or not the loop is completed
+    */
+    bool loopCompleted(TAState* TAStates);
+
+    /**
+     * This function increments the loop number of the TA
+     * *To be called by a TA process
+    */
+    void incrementLoopNum(TAState* TAStates);
+
+    /**
+     * This function returns the number of the TA
+     * *To be called by a TA process
+    */
+    int getTANumber(TAState* TAStates);
 }
 
 #endif
