@@ -88,33 +88,20 @@ namespace ProcessManagement
 
     void cleanup(int signalNumber)
     {
-        std::cout << "cleanup called by pid " << getpid() << std::endl;
-        // Start by iterating through the process set.
-        // This set should contain all of the children processes created by the calling process.
-       
+        //Go through all IPC objects and remove them
         for (auto it = shmSet.begin(); it != shmSet.end(); ++it)
         {
             switch (it->first)
             {
                 case PROCESS_VALUE:
-                    if (kill(it->second, SIGTERM) == -1)
-        {
-            perror("Failed to terminate process");
-        }
-            std::cout << "Process " << it->second << " terminated successfully." << std::endl;
-    
+                    kill(it->second, SIGTERM);
+                    std::cout << "Process " << it->second << " terminated successfully." << std::endl;
                     break;
                 case SEMAPHORE_VALUE:
-                    if (semctl(it->second, 0, IPC_RMID) == -1) {
-                        perror("Failed to remove semaphore");
-                    }
-                    std::cout << "semaphore removed" << std::endl;
+                    semctl(it->second, 0, IPC_RMID);
                     break;
                 case SHM_VALUE:
-                    if (shmctl(it->second, IPC_RMID, NULL) == -1) {
-                        perror("Failed to remove shared memory");
-                    }
-                    std::cout << "shm removed" << std::endl;
+                    shmctl(it->second, IPC_RMID, NULL);
                     break;
             }
         }
@@ -167,8 +154,7 @@ namespace TAManagement
 
     void markStudent(int studentNumber, int mark, int sem_id, int index)
     {
-        sleep(rand() % 2 + 1);
-        //sleep((rand() % 10) + 1); // sleep for 1-10 seconds to represent marking
+        sleep((rand() % 10) + 1); // sleep for 1-10 seconds to represent marking
         // Create the output stream
         std::ofstream file;
         try
@@ -207,7 +193,6 @@ int main(int argc, char *argv[])
     signal(SIGINT, signalCleanup);
     signal(SIGTERM, signalCleanup);
     signal(SIGQUIT, signalCleanup);
-    signal(SIGCHLD, handleChildProcessError); // signal for child process error
     
     std::cout << "Creating semaphore..." << std::endl;
     int safety_sem = createSemaphore(4444, 1, 1);
@@ -222,6 +207,7 @@ int main(int argc, char *argv[])
     //Then the TAs are created
     std::cout << "Creating TAs..." << std::endl;
     TAState* TAStates = (TAState*) createSharedMemory(123, NUM_TA * sizeof(TAState));
+
     for (int i = 0 ; i < NUM_TA; i++) {
         //Create a new process for each TA
         createProcess();
@@ -230,12 +216,10 @@ int main(int argc, char *argv[])
             semaphoreOperation(safety_sem, 0, -1);
             if (!TAStates[i].pid) {
                 TAStates[i] = (TAState){0, getpid(), 1};
-                semaphoreOperation(safety_sem, 0, 1);
-                break;
             }
             semaphoreOperation(safety_sem, 0, 1);
 
-            //The main line of exection starts here.
+            //The main line of execution starts here.
         int taNum;
         semaphoreOperation(safety_sem, 0, -1);
         for (int i = 0 ; i < TAManagement::NUM_TA; i++) {
@@ -247,10 +231,9 @@ int main(int argc, char *argv[])
         semaphoreOperation(safety_sem, 0, 1);
         int nextTaNum = (taNum + 1) % TAManagement::NUM_TA;
         // Each TA continues marking until it loops through the database 3 times.
-        while (TAStates[taNum].loopNum < TAManagement::LOOP_NUM) {
+        while (true) {
             //Access the database and choose a student to mark.
             // Decrement the semaphore to prevent more than 2 TAs from database access at once.
-            //sleep(1);
             std::cout << "TA " << taNum << " is queued for access to the database." << std::endl;
             semaphoreOperation(ta_sem, taNum, -1);
             if (semctl(ta_sem, nextTaNum, GETVAL) == 0) {
