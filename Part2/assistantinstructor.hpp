@@ -134,7 +134,7 @@ namespace ProcessManagement {
 //This namespace is responsible for the implementation of the TA management system
 namespace TAManagement{
     const int LOOP_NUM = 3; //The number of times a TA should loop through the database
-    const int NUM_TA = 3; //The number of TA's to create
+    const int NUM_TA = 5; //The number of TA's to create
 
     //This structure is responsible for holding information about a TA's state
     struct TAState{

@@ -63,11 +63,6 @@ namespace ProcessManagement
     void deallocateSharedMemory(int shmid)
     {
         shmctl(shmid, IPC_RMID, NULL); // queue for deallocation
-        // Make sure that the id specified is in the shmset before attempting to remove
-        if (shmSet.find(std::pair<int, int>(SHM_VALUE, shmid)) != shmSet.end())
-        {
-            shmSet.erase(std::pair<int, int>(SHM_VALUE, shmid));
-        }
     }
 
     void detachSharedMemory(void *ptr)
@@ -132,24 +127,27 @@ namespace ProcessManagement
         std::cout << "cleanup called by pid " << getpid() << std::endl;
         // Start by iterating through the process set.
         // This set should contain all of the children processes created by the calling process.
-        while (!shmSet.empty())
+       
+        for (auto it = shmSet.begin(); it != shmSet.end(); ++it)
         {
-            auto i = shmSet.begin();
-            switch (i->first)
+            switch (it->first)
             {
-            case PROCESS_VALUE:
-                terminateProcess(i->second);
-                break;
-            case SEMAPHORE_VALUE:
-                if (semctl(i->second, 0, IPC_RMID) == -1) {
-                    perror("Failed to remove semaphore");
-                }
-            case SHM_VALUE:
-                if (shmctl(i->second, IPC_RMID, NULL) == -1) {
-                    perror("Failed to remove shared memory");
-                }
+                case PROCESS_VALUE:
+                    terminateProcess(it->second);
+                    break;
+                case SEMAPHORE_VALUE:
+                    if (semctl(it->second, 0, IPC_RMID) == -1) {
+                        perror("Failed to remove semaphore");
+                    }
+                    std::cout << "semaphore removed" << std::endl;
+                    break;
+                case SHM_VALUE:
+                    if (shmctl(it->second, IPC_RMID, NULL) == -1) {
+                        perror("Failed to remove shared memory");
+                    }
+                    std::cout << "shm removed" << std::endl;
+                    break;
             }
-            shmSet.erase(i);
         }
     }
 
@@ -208,7 +206,8 @@ namespace TAManagement
 
     void markStudent(int studentNumber, int mark, int sem_id, int index)
     {
-        sleep((rand() % 10) + 1); // sleep for 1-10 seconds to represent marking
+        sleep(rand() % 2 + 1);
+        //sleep((rand() % 10) + 1); // sleep for 1-10 seconds to represent marking
         // Create the output stream
         std::ofstream file;
         try
@@ -283,7 +282,7 @@ int main(int argc, char *argv[])
         
     //Next the TA semaphores are created
     std::cout << "Creating semaphores..." << std::endl;
-    int ta_sem = createSemaphore(7777, 1, TAManagement::NUM_TA);
+    int ta_sem = createSemaphore(7878, 1, TAManagement::NUM_TA);
     //Then the TAs are created
     using namespace TAManagement;
     std::cout << "Creating TAs..." << std::endl;
@@ -332,7 +331,7 @@ int main(int argc, char *argv[])
         while (TAStates[taNum].loopNum < TAManagement::LOOP_NUM) {
             //Access the database and choose a student to mark.
             // Decrement the semaphore to prevent more than 2 TAs from database access at once.
-            sleep(1);
+            //sleep(1);
             std::cout << "TA " << taNum << " is queued for access to the database." << std::endl;
             semaphoreOperation(ta_sem, taNum, -1);
             if (semctl(ta_sem, nextTaNum, GETVAL) == 0) {
@@ -342,9 +341,10 @@ int main(int argc, char *argv[])
             }
             semaphoreOperation(ta_sem, nextTaNum, -1);
             std::cout << "TA " << taNum << " is has gained access to the database." << std::endl;
-            sleep(rand() % 4 + 1);
+            //sleep(rand() % 4 + 1);
+            sleep(rand() % 1 + 1);
             //increment the index
-            if (TAStates[taNum].index >= 9999) {
+            if (database[TAStates[taNum].index] == 9999) {
                 TAStates[taNum].index = 1;
                 TAStates[taNum].loopNum++;
                 std::cout << "TA " << taNum << " has looped through the database " << TAStates[taNum].loopNum << " times." << std::endl;
