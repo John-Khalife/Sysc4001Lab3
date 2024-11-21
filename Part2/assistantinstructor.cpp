@@ -167,7 +167,6 @@ namespace ProcessManagement
     void handleChildProcessError(int signalNumber)
     {
         std::cout << "Child process failed with signal number " << signalNumber << "." << std::endl;
-        exit(1);
     }
 
 }
@@ -276,7 +275,7 @@ int main(int argc, char *argv[])
     std::cout << "Creating semaphore..." << std::endl;
     int safety_sem = createSemaphore(4444, 1, 1);
 
-    std::cout << "loading database..." << std::endl;
+    std::cout << "Loading database..." << std::endl;
     // First the student database needs to be loaded into shared memory.
     int* database = TAManagement::loadDatabase("student_database.txt");
         
@@ -292,20 +291,21 @@ int main(int argc, char *argv[])
     
     for (int i = 0 ; i < NUM_TA; i++) {
         createProcess();
+        srand(time(NULL) + getpid());
         if (getpid() != MANAGER_PID) {
             semaphoreOperation(safety_sem, 0, -1);
-            std::cout << "semaphore decremented by " << getpid() << std::endl;
             if (!TAStates[i].pid) {
-                TAStates[i] = (TAState){0, getpid(), 0};
+                TAStates[i] = (TAState){0, getpid(), 1};
                 semaphoreOperation(safety_sem, 0, 1);
-                std::cout << "semaphore incremented by " << getpid() << std::endl;
                 break;
             }
             semaphoreOperation(safety_sem, 0, 1);
-            std::cout << "semaphore incremented by " << getpid() << std::endl;
         }
     }
     
+    int numaccessid = createSharedMemory(123323, sizeof(int));
+    int* numaccess = (int*) getSharedMemory(numaccessid);
+    *numaccess = 0;
     
     
 
@@ -326,8 +326,8 @@ int main(int argc, char *argv[])
         }
         semaphoreOperation(safety_sem, 0, 1);
         int nextTaNum = (taNum + 1) % TAManagement::NUM_TA;
-        std::cout << "TA " << taNum << " has been assigned its TA number." << std::endl;
         // Each TA continues marking until it loops through the database 3 times.
+        //! There is currently a livelock error that occurs when TAs are trying to gain access to the database but none currently are accessing it.
         while (TAStates[taNum].loopNum < TAManagement::LOOP_NUM) {
             //Access the database and choose a student to mark.
             // Decrement the semaphore to prevent more than 2 TAs from database access at once.
@@ -335,26 +335,36 @@ int main(int argc, char *argv[])
             std::cout << "TA " << taNum << " is queued for access to the database." << std::endl;
             semaphoreOperation(ta_sem, taNum, -1);
             if (semctl(ta_sem, nextTaNum, GETVAL) == 0) {
-                semaphoreOperation(ta_sem, taNum, 1);
-                std::cout << "TA " << taNum << " is waiting for TA " << nextTaNum << " to finish marking." << std::endl;
-                continue;
+                if (TAStates[taNum].pid < TAStates[nextTaNum].pid) {
+                    semaphoreOperation(ta_sem, taNum, 1);
+                    std::cout << "TA " << taNum << " is waiting for TA " << nextTaNum << " to finish marking." << std::endl;
+                    sleep(rand() % 4 + 1);
+                    continue;
+                }                
             }
             semaphoreOperation(ta_sem, nextTaNum, -1);
             std::cout << "TA " << taNum << " is has gained access to the database." << std::endl;
-            //sleep(rand() % 4 + 1);
+            *numaccess++;
+            std::cout << "Number of accesses: " << *numaccess << std::endl;
+            // sleep(rand() % 4 + 1);
             sleep(rand() % 1 + 1);
             //increment the index
             if (database[TAStates[taNum].index] == 9999) {
                 TAStates[taNum].index = 1;
                 TAStates[taNum].loopNum++;
                 std::cout << "TA " << taNum << " has looped through the database " << TAStates[taNum].loopNum << " times." << std::endl;
-            } else {
-                TAStates[taNum].index++;
+                if (TAStates[taNum].loopNum == LOOP_NUM) {
+                    semaphoreOperation(ta_sem, nextTaNum, 1);
+                    semaphoreOperation(ta_sem, taNum, 1);
+                    break;
+                }
             }
             std::cout << "TA " << taNum << " decided to mark student " << database[TAStates[taNum].index] << std::endl;
+            numaccess++;
             semaphoreOperation(ta_sem, nextTaNum, 1);
             semaphoreOperation(ta_sem, taNum, 1);
             markStudent(database[TAStates[taNum].index], rand() % 100, ta_sem, taNum);
+            TAStates[taNum].index++;
         }
 
     }
