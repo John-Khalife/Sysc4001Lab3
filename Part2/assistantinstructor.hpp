@@ -101,6 +101,12 @@ namespace ProcessManagement {
      * when the program shuts down.
     */
    void cleanup(int signalNumber);
+
+    /**
+     * This method is responsible for cleaning up all shared memory and processes,
+     * @param signum - the signal number
+    */
+   void childCleanup(int signum);
 }
 
 //This namespace is responsible for the implementation of the TA management system
