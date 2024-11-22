@@ -46,8 +46,7 @@ namespace ProcessManagement
             perror("Failed shared memory allocation.");
         }
         shmSet.insert(std::pair<int, int>(SHM_VALUE, shm_id));
-        void *ptr = shmat(shm_id, NULL, 0);
-        return ptr;
+        return shm_id;
     }
 
     int createSemaphore(int key, int initialValue, int length)
@@ -191,9 +190,13 @@ namespace TAManagement
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
+    /*
+     * My Idea for the structure
+     - The original process acts as the manager for all the TA processes.
+     - It will be responsible for ending the program.
+    */
     using namespace ProcessManagement;
-    using namespace TAManagement;
-
+    //! program pseudocode/not really pseudocode
     // Save the controller process id
     const pid_t MANAGER_PID = getpid();
     std::cout << "Manager process has pid " << MANAGER_PID << std::endl;

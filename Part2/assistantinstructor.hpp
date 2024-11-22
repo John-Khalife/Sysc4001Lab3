@@ -57,7 +57,6 @@ namespace ProcessManagement {
      * This method allocates shared memory and returns an id. It does the error handling
      * @param size: the size of the shared memory
      * @param key: the key of the shared memory
-     * @return int - the pointer of the shared memory
     */
     void* createSharedMemory(int key, int size);
 
