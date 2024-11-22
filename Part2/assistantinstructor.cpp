@@ -45,8 +45,9 @@ namespace ProcessManagement
         {
             perror("Failed shared memory allocation.");
         }
+        void *shm = shmat(shm_id, NULL, 0);
         shmSet.insert(std::pair<int, int>(SHM_VALUE, shm_id));
-        return shm_id;
+        return shm;
     }
 
     int createSemaphore(int key, int initialValue, int length)
@@ -190,13 +191,8 @@ namespace TAManagement
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    /*
-     * My Idea for the structure
-     - The original process acts as the manager for all the TA processes.
-     - It will be responsible for ending the program.
-    */
     using namespace ProcessManagement;
-    //! program pseudocode/not really pseudocode
+    using namespace TAManagement;
     // Save the controller process id
     const pid_t MANAGER_PID = getpid();
     std::cout << "Manager process has pid " << MANAGER_PID << std::endl;
@@ -211,11 +207,11 @@ int main(int argc, char *argv[])
 
     std::cout << "Loading database..." << std::endl;
     // First the student database needs to be loaded into shared memory.
-    int *database = TAManagement::loadDatabase("student_database.txt");
+    int *database = loadDatabase("student_database.txt");
 
     // Next the TA semaphores are created
     std::cout << "Creating semaphores..." << std::endl;
-    int ta_sem = createSemaphore(7878, 1, TAManagement::NUM_TA);
+    int ta_sem = createSemaphore(7878, 1, NUM_TA);
     // Then the TAs are created
     std::cout << "Creating TAs..." << std::endl;
     TAState *TAStates = (TAState *)createSharedMemory(123, NUM_TA * sizeof(TAState));
@@ -233,7 +229,7 @@ int main(int argc, char *argv[])
 
             // Get the TA's number + add the process to the TAStates array
             semaphoreOperation(safety_sem, 0, -1);
-            for (int i = 0; i < TAManagement::NUM_TA; i++)
+            for (int i = 0; i < NUM_TA; i++)
             {
                 if (!TAStates[i].pid)
                 {
@@ -244,7 +240,7 @@ int main(int argc, char *argv[])
                 }
             }
             semaphoreOperation(safety_sem, 0, 1);
-            int nextTaNum = (taNum + 1) % TAManagement::NUM_TA; // This is the next TA's number
+            int nextTaNum = (taNum + 1) % NUM_TA; // This is the next TA's number
 
             // Each TA continues marking until it loops through the database 3 times.
             while (true)
