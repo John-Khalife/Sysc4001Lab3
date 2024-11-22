@@ -36,19 +36,7 @@ namespace MemoryStructures
             }
         }
         return -1;
-    }
-
-    pcb_t *getRunningProcess(vector<pcb_t> &pcb)
-    {
-        for (int i = pcb.size(); i >= 0; i--)
-        {
-            if (pcb[i].currentState == RUNNING)
-            {
-                return &pcb[i];
-            }
-        }
-        return NULL;
-    }
+    } 
 
     void evaluateMemory(vector<pcb_t>& pcb, Partition* memory) {
         vector<pcb_t*> loadableProcesses; //holds all loadable processes.
@@ -77,8 +65,8 @@ namespace MemoryStructures
             }
 
             //Next decide what processes to load into memory - this is where scheduling strategy comes into play
-            //TODO: implement a way to choose what process to load into memory
-            
+            executeStrategy(pcb, true);
+
             //Load that process into memory reservememory()
             //Remove that process from the list - doesn't matter if the loading succeeded or failed
         }
@@ -103,7 +91,7 @@ namespace MemoryStructures
                 readyProcesses.push_back(&p);
             }
         }
-        //TODO: Insert scheduling strategy here - should decide on a process and a time.
+        executeStrategy(pcb, false);
         return ExecutionOrder();
     }
 
@@ -132,6 +120,22 @@ namespace MemoryStructures
             }
         }
         return false;
+    }
+
+    pcb_t* executeStrategy(vector<pcb_t>& pcb, bool loadMem) {
+        switch (STRAGEGY_USED) {
+            case 0:
+                return schedulerFCFS(pcb, loadMem);
+                break;
+            case 1:
+                return schedulerEP(pcb, loadMem);
+                break;
+            case 2:
+                return schedulerRR(pcb, loadMem);
+                break;
+            default:
+                return schedulerFCFS(pcb, loadMem);
+        }
     }
 
     pcb_t* schedulerFCFS(vector<pcb_t>& pcb, bool loadMem) {
@@ -383,12 +387,6 @@ namespace Execution
         }
     }
 }
-
-void schedulerFCFS()
-{
-    
-}
-
 
 
 int main(int argc, char *argv[])

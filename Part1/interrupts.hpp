@@ -15,7 +15,7 @@
 
 //This namespace contains simulated memory structures used by the CPU.
 namespace MemoryStructures {
-
+    const int STRAGEGY_USED = 0; //The strategy used for the scheduler
     const int PARTITION_SIZES[] = {40,25,15,10,8,2};
     const int PARTITION_NUM = 6; 
     const int QUANTUM = 100; //The time quantum for the round robin scheduler
@@ -46,7 +46,7 @@ namespace MemoryStructures {
         uint totalCPUTime;
         uint ioFrequency;
         uint ioDuration;
-        Partition* memoryAllocated;
+        part_t* memoryAllocated;
         ProcessState currentState;
         uint currentTime;
 
@@ -95,13 +95,6 @@ namespace MemoryStructures {
     ExecutionOrder getExecutionOrder(std::vector<pcb_t>& pcb);
 
     /**
-     * This function serves to get the process that needs to be executed.
-     * @param pcb a pointer to the PCB
-     * @return a pointer to the running process
-    */
-    pcb_t* getRunningProcess(std::vector<pcb_t>& pcb);
-
-    /**
      * This function is responsible for simulating IO. It transitions out of and into the waiting state
      * @param pcb - the pcb table
      * @param order - the execution order
@@ -115,10 +108,35 @@ namespace MemoryStructures {
      */
     bool processesRemain(std::vector<pcb_t>& pcb);
 
+    /**
+     * This function is responsible for executing the strategy given STRATEGY_USED constant
+     * @param pcb - the pcb table
+     * @param loadMem - a boolean stating whether or not to load memory
+    */
+    pcb_t* executeStrategy(std::vector<pcb_t>& pcb, bool loadMem);
 
+    /**
+     * This function is responsible for executing the first come first serve
+     * scheduling algorithm
+     * @param pcb - the pcb table
+     * @param loadMem - a boolean stating whether or not to load memory
+    */
+    pcb_t* schedulerFCFS(std::vector<pcb_t>& pcb, bool loadMem);
 
+    /**
+     * This function is responsible for executing the external priority scheduling algorithm
+     * @param pcb - the pcb table
+     * @param loadMem - a boolean stating whether or not to load memory
+    */
+    pcb_t* schedulerEP(std::vector<pcb_t>& pcb, bool loadMem);
+
+    /**
+     * This function is responsible for executing the round robin scheduling algorithm
+     * @param pcb - the pcb table
+     * @param loadMem - a boolean stating whether or not to load memory
+    */
+    pcb_t* schedulerRR(std::vector<pcb_t>& pcb, bool loadMem);
 }
-
 
 //These functions and structures are responsible for Parsing.
 namespace Parsing {
