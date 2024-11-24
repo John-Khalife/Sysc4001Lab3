@@ -431,7 +431,7 @@ namespace Execution
                 p->waitedTime += order.time;
                 if (p->waitedTime >= p->ioDuration) {
                     writeExecutionStep((ExecutionOrder){.process = p, .time = 0, .nextState = READY});
-                    p->waitedTime = READY;
+                    p->currentState = READY;
                     p->waitedTime = 0;
                 }
             }
@@ -488,7 +488,7 @@ int main(int argc, char *argv[])
        Execution::doExecution(pcb); //handles the CPU
         for (pcb_t* p : pcb) {
             cout << "PID: " << p->pid << " Memory Size: " << p->memorySize << " Arrival Time: " << p->arrivalTime << " Total CPU Time: " << p->totalCPUTime << " IO Frequency: " << p->ioFrequency << " IO Duration: " << p->ioDuration;
-            cout << " State: " << stateName(p->currentState) << endl;
+            cout << " State: " << stateName(p->currentState) << " IOcurrentTime: " << p->waitedTime << endl;
         }
     }
 
