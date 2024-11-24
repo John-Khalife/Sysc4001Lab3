@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 
 //This holds all of the memory structures used in this program
 namespace MemoryStructures {
@@ -37,7 +38,6 @@ namespace MemoryStructures {
     //This structure represents a single PCB entry.
     struct PcbEntry {
         uint pid;
-        uint priority;
         uint memorySize;
         uint arrivalTime;
         uint totalCPUTime;
@@ -46,7 +46,8 @@ namespace MemoryStructures {
         part_t* memoryAllocated;
         ProcessState currentState;
         uint currentTime;
-
+        uint waitedTime;
+        uint priority;
     } typedef pcb_t;
 
     //This structure represents an execution order
@@ -56,6 +57,25 @@ namespace MemoryStructures {
         int time;
         ProcessState nextState;
     };
+
+    std::string stateName(ProcessState state) {
+        switch (state) {
+            case NEW:
+                return "NEW";
+            case READY:
+                return "READY";
+            case WAITING:
+                return "WAITING";
+            case RUNNING:
+                return "RUNNING";
+            case TERMINATED:
+                return "TERMINATED";
+            case NOT_ARRIVED:
+                return "NOT_ARRIVED";
+            default:
+                return "UNKNOWN";
+        }
+    }
 }
 
 //These functions and structures are responsible for getting input for the program and parsing it.
