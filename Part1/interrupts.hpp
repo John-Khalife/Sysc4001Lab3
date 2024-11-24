@@ -173,10 +173,17 @@ namespace Execution {
     void setOutputFiles(std::string executionFileName, std::string memoryStatusFileName);
 
     /**
-     * This method prints the toString method of the PCB to a file
-     * @param pcb the pcb structure
+     * This method writes the memory status to the output file
+     * @param memAllocated - the memory allocated
+     * @param pcb - the pcb table
     */
-    void writePcbTable(std::vector<MemoryStructures::pcb_t*> pcb);
+    void writeMemoryStatus(int memAllocated, std::vector<pcb_t*>& pcb, MemoryStructures::Partition *memory);
+
+    /**
+     * This method writes the execution step to the output file
+     * @param order - the execution order
+    */
+    void writeExecutionStep(ExecutionOrder order);
 
     /**
      * This method is intended to do one execution cycle of a process.

@@ -134,7 +134,15 @@ namespace Execution
     } 
 
     void evaluateMemory(vector<pcb_t*>& pcb, Partition* memory) {
-        processCleanup(pcb,memory); //clean up the processes that have finished execution
+        //clean up the processes that have finished execution
+        for (pcb_t* p : pcb) {
+            if (p->currentState == TERMINATED) {
+                if (p->memoryAllocated) {
+                    p->memoryAllocated->code = -1;
+                    p->memoryAllocated = nullptr;
+                }
+            }
+        }
 
         vector<pcb_t*> loadableProcesses; //holds all loadable processes.
         //Iterate through every single process
@@ -173,26 +181,7 @@ namespace Execution
         }
     }
 
-    void processCleanup(vector<pcb_t*>& pcb, Partition* memory) {
-        //find the processes who have satisfied their execution time.
-        for (pcb_t* p : pcb) {
-            if (p->currentState == TERMINATED) {
-                if (p->memoryAllocated) {
-                    p->memoryAllocated->code = -1;
-                    p->memoryAllocated = nullptr;
-                }
-            }
-        }
-    }
-
     ExecutionOrder getExecutionOrder(std::vector<pcb_t*>& pcb, bool loadMem) {
-        vector<pcb_t*> readyProcesses; //fetch all the ready processes
-        for (pcb_t* p : pcb) {
-            if (p->currentState == READY) {
-                readyProcesses.push_back(p);
-            }
-        }
-
         switch (STRAGEGY_USED) {
             case 0:
                 return schedulerFCFS(pcb, loadMem);
@@ -329,22 +318,60 @@ namespace Execution
         }
     }
 
-    void writeExecutionStep(int duration, string eventType)
+    void writeExecutionStep(ExecutionOrder order)
     {
         if (executionOutput.fail())
         {
             return;
         }
-        executionOutput << timer << ", " << duration << ", " << eventType << endl; // Write the Execution message in the proper format
-        timer += duration;                                                // Add the amount of timer to CPU timer for the next write
+        executionOutput << "| " << std::setw(18) << std::right << timer;
+        executionOutput << " | " << std::setw(2) << std::right << order.process->pid << " | " << std::setw(9) << std::right;
+        executionOutput<< order.process->currentState << " | " << std::setw(9) << std::right << order.nextState << " |" << std::endl;
     }
 
-    void writeMemoryStatus(MemoryStructures::Partition *memory)
+    void writeMemoryStatus(int memAllocated, vector<pcb_t*>& pcb, MemoryStructures::Partition *memory)
     {
         if (memoryStatusOutput.fail())
         {
             return;
         }
+        //Get the memory state, total free memory, and usable free memory
+        string memoryState = "";
+        int totalFreeMemory = 0;
+        int usableFreeMemory = 0;
+        for (int i = 0; i < PARTITION_NUM; i++)
+        {
+            if (memory[i].code == -1)
+            {
+                totalFreeMemory += memory[i].size;
+                usableFreeMemory += memory[i].size;
+            } else {
+                for (int j = 0; j < pcb.size(); j++)
+                {
+                    if (pcb[j]->pid == memory[i].code)
+                    {
+                        usableFreeMemory += memory[i].size;
+                        break;
+                    }
+                }
+                totalFreeMemory += memory[i].size;
+            }
+            memoryState += memory[i].code;
+            if (i != PARTITION_NUM - 1)
+            {
+                memoryState += ",";
+            }
+        }
+
+
+        //| Time of Event | Memory Used | Partitions State | Total Free Memory | Usable Free Memory |
+        memoryStatusOutput << "| " << std::setw(13) << std::right << timer;
+        memoryStatusOutput << " | " << std::setw(11) << std::right << memAllocated;
+        memoryStatusOutput << " | " << std::setw(16) << std::right << memoryState;
+        memoryStatusOutput << " | " << std::setw(17) << std::right << totalFreeMemory;
+        memoryStatusOutput << " | " << std::setw(18) << std::right << usableFreeMemory;
+        memoryStatusOutput << " | " << std::endl;
+
         
     }
 
@@ -416,7 +443,9 @@ int main(int argc, char *argv[])
     //End the output files
     Execution::memoryStatusOutput << "+------------------------------------------------------------------------------------------+" << std::endl;
     Execution::executionOutput << "+------------------------------------------------+" << std::endl;
-
+    //Close files
+    Execution::executionOutput.close();
+    Execution::memoryStatusOutput.close();
     // Cleanup
     delete[] memory;
     // All other structs are deallocated when vector activates their deconstructors.
