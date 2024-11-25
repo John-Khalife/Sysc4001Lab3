@@ -127,7 +127,6 @@ namespace Execution
                 if (size <= memory[i].size)
                 {
                     memory[i].code = process->pid;
-                    process->currentState = READY; // now that it is loaded, set the state to ready.
                     return &memory[i];
                 }
             }
@@ -140,11 +139,6 @@ namespace Execution
         for (pcb_t* p : pcb) {
             if (p->currentTime >= p->totalCPUTime) {
                 if (p->memoryAllocated) {
-                    ExecutionOrder order;
-                    order.nextState = TERMINATED;
-                    order.process = p;
-                    order.time = 0;
-                    writeExecutionStep(order);
                     p->currentState = TERMINATED;
                     p->memoryAllocated->code = -1;
                     p->memoryAllocated = nullptr;
@@ -159,7 +153,6 @@ namespace Execution
             //Check to see if it has not arrived and if the time is ready for arrival
             if (p->currentState == NOT_ARRIVED && p->arrivalTime <= Execution::timer) {
                 cout << "Process " << p->pid << " has arrived." << endl;
-                writeExecutionStep((ExecutionOrder){.process = p, .nextState = NEW, .time = 0});
                 p->currentState = NEW; //If so, set the process to new
                 loadableProcesses.push_back(p);
             } else if (p->currentState == NEW) {
@@ -181,7 +174,6 @@ namespace Execution
 
             //Next decide what processes to load into memory - this is where scheduling strategy comes into play
             ExecutionOrder order = getExecutionOrder(loadableProcesses, true);
-            cout << "Process " << order.process->pid << " is being loaded into memory." << endl;
             if (order.process == nullptr) {
                 break;
             }
@@ -191,6 +183,7 @@ namespace Execution
                 order.process->memoryAllocated = partition;
                 writeExecutionStep(order);
                 writeMemoryStatus(order.process->memorySize,pcb,memory);
+                order.process->currentState = order.nextState;
             } 
             //Remove that process from the list - doesn't matter if the loading succeeded or failed
             loadableProcesses.erase(std::remove(loadableProcesses.begin(),loadableProcesses.end(), order.process));
@@ -210,13 +203,20 @@ namespace Execution
         }
     }
 
-    bool processesRemain(vector<pcb_t*>& pcb) {
+    bool processesRemain(vector<pcb_t*>& pcb, Partition* memory) {
+        bool allNotTerminated = false;
         for (pcb_t* p : pcb) {
             if (p->currentState != TERMINATED) {
-                return true;
+                allNotTerminated = true;
             }
         }
-        return false;
+        bool memoryNotDeallocated = false;
+        for (int i = 0 ; i < PARTITION_NUM ; i++) {
+            if (memory[i].code != -1) {
+                memoryNotDeallocated = true;
+            }
+        }
+        return (allNotTerminated) || (memoryNotDeallocated); ;
     }
 
     ExecutionOrder schedulerFCFS(vector<pcb_t*>& pcb, bool loadMem) {
@@ -392,9 +392,15 @@ namespace Execution
         // We need to choose a process to run.
         ExecutionOrder order = getExecutionOrder(readyProcesses, false);
         if (order.process != nullptr) {
-            cout << "not null" << endl;
+            if (order.process->currentState == TERMINATED) {return;}    
+        
+            //The process first needs to be set to run.
+            writeExecutionStep((ExecutionOrder){.process = order.process, .time = 0, .nextState = RUNNING});
+            order.process->currentState = RUNNING;
+
             //Will the process terminate?
             if (order.process->currentTime + order.time >= order.process->totalCPUTime) {
+                order.time = order.process->totalCPUTime - order.process->currentTime;
                 order.nextState = TERMINATED;
             } else {
                 //Next, do the math to determine whether or not the process will be interrupted by IO
@@ -427,7 +433,7 @@ namespace Execution
         //Do the IO for any processes that are waiting during this time
         //Increment waiting time for all proceses in the waiting state. Move to ready if their time has completed.
         for (pcb_t* p : pcb) {
-            if (p->currentState == WAITING) {
+            if (p->currentState == WAITING && p != order.process) {
                 p->waitedTime += order.time;
                 if (p->waitedTime >= p->ioDuration) {
                     writeExecutionStep((ExecutionOrder){.process = p, .time = 0, .nextState = READY});
@@ -479,17 +485,16 @@ int main(int argc, char *argv[])
     for (pcb_t* p : pcb) {
         cout << "PID: " << p->pid << " Memory Size: " << p->memorySize << " Arrival Time: " << p->arrivalTime << " Total CPU Time: " << p->totalCPUTime << " IO Frequency: " << p->ioFrequency << " IO Duration: " << p->ioDuration << endl;
     }
+    //Print initial state of memory
+    Execution::writeMemoryStatus(0,pcb,memory);
+
     // Loop continues while there are still processes to run in the pcb.
     // Get the process that should be run right now. from the pcb
     // Start executing that and continue to check for the best process to run.
-    while (Execution::processesRemain(pcb))
+    while (Execution::processesRemain(pcb,memory))
     {
        Execution::evaluateMemory(pcb,memory); //handles Memory loading and unloading
        Execution::doExecution(pcb); //handles the CPU
-        for (pcb_t* p : pcb) {
-            cout << "PID: " << p->pid << " Memory Size: " << p->memorySize << " Arrival Time: " << p->arrivalTime << " Total CPU Time: " << p->totalCPUTime << " IO Frequency: " << p->ioFrequency << " IO Duration: " << p->ioDuration;
-            cout << " State: " << stateName(p->currentState) << " IOcurrentTime: " << p->waitedTime << endl;
-        }
     }
 
     //End the output files

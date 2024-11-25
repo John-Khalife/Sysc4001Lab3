@@ -159,9 +159,10 @@ namespace Execution {
     /**
      * This function is responsible for returning true if there are still processes to run.
      * @param pcb - the pcb table
+     * @param memory - the memory array
      * @return true if there are processes to run, false otherwise.
      */
-    bool processesRemain(std::vector<pcb_t*>& pcb);
+    bool processesRemain(std::vector<pcb_t*>& pcb, Partition* memory);
 
     /**
      * This function is responsible for executing the first come first serve
