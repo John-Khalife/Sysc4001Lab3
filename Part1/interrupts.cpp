@@ -197,7 +197,7 @@ namespace Execution
         ExecutionOrder order;   
         if (!pcb.empty()) {
             order.process = pcb.front();
-            order.time = pcb.front()->ioDuration;
+            order.time = pcb.front()->ioFrequency;
         }
         return order;  
     }
