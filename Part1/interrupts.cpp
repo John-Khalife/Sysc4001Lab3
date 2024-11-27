@@ -196,6 +196,18 @@ namespace Execution
     ExecutionOrder schedulerFCFS(deque<pcb_t*>& pcb) {
         ExecutionOrder order;   
         if (!pcb.empty()) {
+            //Use a bubble sort to sort all ready processes by lowest arrival time
+            //This way, processes with the same arrival time maintain their relative order
+            for (int i = 0; i < pcb.size() - 1; i++) {
+                for (int j = 0; j < pcb.size() - i - 1; j++) {
+                    if (pcb[j]->arrivalTime > pcb[j + 1]->arrivalTime) {
+                        pcb_t* temp = pcb[j];
+                        pcb[j] = pcb[j + 1];
+                        pcb[j + 1] = temp;
+                    }
+                }
+            }
+            //Then get the foremost process
             order.process = pcb.front();
             order.time = pcb.front()->ioFrequency;
         }
@@ -314,6 +326,7 @@ namespace Execution
                 pcb[NEW].push_back(pcb[NOT_ARRIVED].at(i));
                 pcb[NOT_ARRIVED].erase(pcb[NOT_ARRIVED].begin() + i);
                 loadMemory(pcb, memory);
+                i--;
             }
         }
     }
@@ -328,6 +341,7 @@ namespace Execution
             if (pcb[WAITING].at(i)->ioDuration <= pcb[WAITING].at(i)->waitedTime) {
                 pcb[WAITING].at(i)->waitedTime = 0;
                 changeState(pcb[WAITING].at(i), WAITING, READY, pcb);
+                i--;
             }
         }
     }
