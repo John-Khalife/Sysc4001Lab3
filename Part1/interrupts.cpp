@@ -12,6 +12,8 @@
 #include <iomanip>
 #include <memory>
 #include <cstdint>
+#include <deque>
+#include <algorithm>
 
 #include "interrupts.hpp"
 
@@ -20,9 +22,9 @@ using namespace std;
 namespace Parsing
 {
 
-    vector<MemoryStructures::PcbEntry*> loadPCBTable(string fileName)
+    deque<MemoryStructures::PcbEntry*> loadPCBTable(string fileName)
     {
-        vector<MemoryStructures::PcbEntry*> pcbTable;
+        deque<MemoryStructures::PcbEntry*> pcbTable;
         ifstream input;
         try {
             input.open(fileName);
@@ -61,25 +63,24 @@ namespace Parsing
                 newProcess->ioFrequency = stoi(s);
                 getline(ss, s, ' ');
                 newProcess->ioDuration = stoi(s);
-                newProcess->currentState = MemoryStructures::ProcessState::NOT_ARRIVED;
-                newProcess->currentTime = 0;
                 newProcess->waitedTime = 0;
-                newProcess->priority = 0;
             }
             catch (const exception &e)
             {
                 cerr << e.what() << '\n';
                 exit(1);
             }
-            pcbTable.push_back(newProcess);
+            pcbTable.push_front(newProcess);
+
         }
+    
         input.close();
         return pcbTable;
     }
 
-    vector<string> grabStudentNumbers(string fileName)
+    deque<string> grabStudentNumbers(string fileName)
     {
-        vector<string> ids;
+        deque<string> ids;
         stringstream ss(fileName.substr(0, fileName.find_first_of('.')));
         string s;
         while (getline(ss, s, '_'))
@@ -102,7 +103,7 @@ namespace Parsing
     }
 
     string getOutputFilename(string prefix, string fileName) {
-        vector<string> studentNums = grabStudentNumbers(fileName);
+        deque<string> studentNums = grabStudentNumbers(fileName);
         string outputName = prefix;
         for (string s : studentNums) {
             outputName += ("_" + s);
@@ -116,7 +117,7 @@ namespace Execution
 {
     using namespace MemoryStructures;
 
-    Partition* reserveMemory(Partition *memory, uint size, pcb_t* process)
+    bool reserveMemory(Partition *memory, uint size, pcb_t* process)
     {
         //*NOTE Partition sizes are ordered from largest to smallest - so best fit will be easy.
         //*That means however, this method may need to be updated in the future if different partitions are given.
@@ -127,40 +128,17 @@ namespace Execution
                 if (size <= memory[i].size)
                 {
                     memory[i].code = process->pid;
-                    return &memory[i];
+                    process->memoryAllocated = &memory[i];
+                    return true;
                 }
             }
         }
-        return nullptr;
+        return false;
     } 
 
-    void evaluateMemory(vector<pcb_t*>& pcb, Partition* memory) {
-        //clean up the processes that have finished execution
-        for (pcb_t* p : pcb) {
-            if (p->currentTime >= p->totalCPUTime) {
-                if (p->memoryAllocated) {
-                    p->currentState = TERMINATED;
-                    p->memoryAllocated->code = -1;
-                    p->memoryAllocated = nullptr;
-                    writeMemoryStatus(p->memorySize,pcb,memory);   
-                }
-            }
-        }
-
-        vector<pcb_t*> loadableProcesses; //holds all loadable processes.
-        //Iterate through every single process
-        for (pcb_t* p : pcb) {
-            //Check to see if it has not arrived and if the time is ready for arrival
-            if (p->currentState == NOT_ARRIVED && p->arrivalTime <= Execution::timer) {
-                cout << "Process " << p->pid << " has arrived." << endl;
-                p->currentState = NEW; //If so, set the process to new
-                loadableProcesses.push_back(p);
-            } else if (p->currentState == NEW) {
-                loadableProcesses.push_back(p);
-            }
-        }
-
-        while (!loadableProcesses.empty()) {
+    void loadMemory(deque<pcb_t*>* pcb, Partition* memory) {
+        //Iterate through every single process in the new state
+        while (!pcb[1].empty()) {
             //First check if there is space
             bool isSpace = false;
             for (int i = 0 ; i < PARTITION_NUM ; i++) {
@@ -171,140 +149,90 @@ namespace Execution
             if (!isSpace) {
                 break; //leave the loop
             }
-
             //Next decide what processes to load into memory - this is where scheduling strategy comes into play
-            ExecutionOrder order = getExecutionOrder(loadableProcesses, true);
+            ExecutionOrder order = getExecutionOrder(pcb[NEW], true);
             if (order.process == nullptr) {
                 break;
             }
             //Load that process into memory reservememory()
-            Partition* partition = reserveMemory(memory, order.process->memorySize, order.process);
-            if (partition) {
-                order.process->memoryAllocated = partition;
-                writeExecutionStep(order);
+            if (reserveMemory(memory, order.process->memorySize, order.process)) {
+                changeState(order.process, NEW, READY, pcb);
                 writeMemoryStatus(order.process->memorySize,pcb,memory);
-                order.process->currentState = order.nextState;
             } 
-            //Remove that process from the list - doesn't matter if the loading succeeded or failed
-            loadableProcesses.erase(std::remove(loadableProcesses.begin(),loadableProcesses.end(), order.process));
         }
     }
 
-    ExecutionOrder getExecutionOrder(std::vector<pcb_t*>& pcb, bool loadMem) {
-        switch (STRAGEGY_USED) {
+    ExecutionOrder getExecutionOrder(deque<pcb_t*>& pcb, bool loadMem) {
+        switch (strategyUsed) {
             case 0:
-                return schedulerFCFS(pcb, loadMem);
+                return schedulerFCFS(pcb);
             case 1:
                 return schedulerEP(pcb, loadMem);
             case 2:
-                return schedulerRR(pcb, loadMem);
+                return schedulerRR(pcb);
             default:
-                return schedulerFCFS(pcb, loadMem);
+                return schedulerFCFS(pcb);
         }
     }
 
-    bool processesRemain(vector<pcb_t*>& pcb, Partition* memory) {
+    bool processesRemain(deque<pcb_t*>* pcb, Partition* memory) {
         bool allNotTerminated = false;
-        for (pcb_t* p : pcb) {
-            if (p->currentState != TERMINATED) {
+        for (int i = NOT_ARRIVED ; i < TERMINATED ; i++) {
+            if (!pcb[i].empty()) {
                 allNotTerminated = true;
+                break;
             }
         }
         bool memoryNotDeallocated = false;
-        for (int i = 0 ; i < PARTITION_NUM ; i++) {
+        for (int i = 0 ; i < MemoryStructures::PARTITION_NUM ; i++) {
             if (memory[i].code != -1) {
                 memoryNotDeallocated = true;
+                break;
             }
         }
         return (allNotTerminated) || (memoryNotDeallocated); ;
     }
 
-    ExecutionOrder schedulerFCFS(vector<pcb_t*>& pcb, bool loadMem) {
-        ExecutionOrder order;
-        order.process = nullptr;
-        order.time = 1;
-        if (pcb.empty()) {return order;}
-        ProcessState currentState = READY;
-        ProcessState nextState = RUNNING;
-        int lowestPriority= INT_MAX;
-        bool processFound = false;
-        
-        if (loadMem) {
-            currentState = NEW;
-            nextState = READY;
+    ExecutionOrder schedulerFCFS(deque<pcb_t*>& pcb) {
+        ExecutionOrder order;   
+        if (!pcb.empty()) {
+            order.process = pcb.front();
+            order.time = pcb.front()->ioDuration;
         }
-        pcb_t* firstProcess = pcb.front();  
-
-        for (pcb_t* i : pcb) {
-            if (i != nullptr) {
-                if (i->currentState == currentState) {
-                    processFound = true;
-                    if (i->arrivalTime < firstProcess->arrivalTime && lowestPriority > i->priority) {
-                        firstProcess = i;
-                        lowestPriority = i->priority;
-                    }
-                }
-            }
-        }
-
-        if (processFound)
-        {
-            order.process = firstProcess;
-            order.process->priority++;
-            order.time = firstProcess->ioFrequency;
-            order.nextState = nextState;
-            return order;
-        }
-        return order;
-        
+        return order;  
     }
 
 
-    ExecutionOrder schedulerEP(vector<pcb_t*>& pcb, bool loadMem) {
-        ProcessState currentState = READY;
-        ExecutionOrder order;
-        
-        if (loadMem) {
-            return schedulerFCFS(pcb, loadMem);
-        }
 
-        pcb_t* firstProcess = pcb.front();
-        bool processFound = false;
-        for (pcb_t* i : pcb) {
-            if (i->currentState == currentState) {
-                if (i->priority < firstProcess->priority) {
-                    firstProcess = i;
+    ExecutionOrder schedulerEP(deque<pcb_t*>& pcb, bool loadMem) {
+        ExecutionOrder order;
+        if (!pcb.empty()) {
+            if (loadMem) {
+                return schedulerFCFS(pcb);
+            }
+            // Sort the pcb by ioFrequency from smallest to largest
+            for (int i = 0; i < pcb.size() - 1; i++) {
+                for (int j = 0; j < pcb.size() - i - 1; j++) {
+                    if (pcb[j]->ioFrequency > pcb[j + 1]->ioFrequency) {
+                        pcb_t* temp = pcb[j];
+                        pcb[j] = pcb[j + 1];
+                        pcb[j + 1] = temp;
+                    }
                 }
             }
-        }
-        if (processFound)
-        {
-            order.process = firstProcess;
-            order.time = firstProcess->ioFrequency;
-            return order;
+            order.process = pcb.front();
+            order.time = pcb.front()->ioDuration;
         }
         return order;
     }
 
-    ExecutionOrder schedulerRR(vector<pcb_t*>& pcb, bool loadMem) {       
-        ExecutionOrder order;
-        if (loadMem) {
-            return schedulerFCFS(pcb, loadMem);
+    ExecutionOrder schedulerRR(deque<pcb_t*>& pcb) {       
+        ExecutionOrder order;   
+        if (!pcb.empty()) {
+            order.process = pcb.front();
+            order.time = QUANTUM;
         }
-        for (pcb_t* i : pcb) {
-            if (i->currentState == READY) {
-                pcb.push_back(i);
-                for (int j = 0 ; j < pcb.size() ; j++) {
-                    if (pcb[j]->pid == i->pid) {
-                        pcb.erase(pcb.begin() + j);
-                        break;
-                    }
-                }
-                return order;
-                
-            }
-        }
-        return order;
+        return order;  
     }
 
     void setOutputFiles(std::string executionFileName, std::string memoryStatusFileName)
@@ -323,18 +251,18 @@ namespace Execution
         }
     }
 
-    void writeExecutionStep(ExecutionOrder order)
+    void writeExecutionStep(pcb_t* process, ProcessState currentState ,ProcessState nextState)
     {
         if (executionOutput.fail())
         {
             return;
         }
         executionOutput << "| " << std::setw(18) << std::right << timer;
-        executionOutput << " | " << std::setw(2) << std::right << order.process->pid << " | " << std::setw(9) << std::right;
-        executionOutput<<  MemoryStructures::stateName(order.process->currentState) << " | " << std::setw(9) << std::right << MemoryStructures::stateName(order.nextState) << " |" << std::endl;
+        executionOutput << " | " << std::setw(2) << std::right << process->pid << " | " << std::setw(9) << std::right;
+        executionOutput<<  MemoryStructures::stateName(currentState) << " | " << std::setw(9) << std::right << MemoryStructures::stateName(nextState) << " |" << std::endl;
     }
 
-    void writeMemoryStatus(int memAllocated, vector<pcb_t*>& pcb, MemoryStructures::Partition *memory)
+    void writeMemoryStatus(int memAllocated, deque<pcb_t*>* pcb, MemoryStructures::Partition *memory)
     {
         if (memoryStatusOutput.fail())
         {
@@ -351,15 +279,16 @@ namespace Execution
                 totalFreeMemory += memory[i].size;
                 usableFreeMemory += memory[i].size;
             } else {
-                for (int j = 0; j < pcb.size(); j++)
-                {
-                    if (pcb[j]->pid == memory[i].code)
+                for (int z = READY ; z < TERMINATED ; z++) {
+                    for (int j = 0; j < pcb[z].size(); j++)
                     {
-                        usableFreeMemory += memory[i].size;
-                        break;
+                        if (pcb[z].at(j)->pid == memory[i].code)
+                        {
+                            totalFreeMemory += memory[i].size - pcb[z].at(j)->memorySize;
+                            break;
+                        }
                     }
                 }
-                totalFreeMemory += memory[i].size;
             }
             memoryState +=  to_string(memory[i].code);
             if (i != PARTITION_NUM - 1)
@@ -367,8 +296,6 @@ namespace Execution
                 memoryState += ",";
             }
         }
-
-
         //| Time of Event | Memory Used | Partitions State | Total Free Memory | Usable Free Memory |
         memoryStatusOutput << "| " << std::setw(13) << std::right << timer;
         memoryStatusOutput << " | " << std::setw(11) << std::right << memAllocated;
@@ -376,71 +303,95 @@ namespace Execution
         memoryStatusOutput << " | " << std::setw(17) << std::right << totalFreeMemory;
         memoryStatusOutput << " | " << std::setw(18) << std::right << usableFreeMemory;
         memoryStatusOutput << " | " << std::endl;
-
-        
     }
 
-    void doExecution(vector<pcb_t*>& pcb)
-    {   
-        vector<pcb_t*> readyProcesses;
-        for (pcb_t* i : pcb) {
-            if (i->currentState == READY) {
-                readyProcesses.push_back(i);
+    void checkArrived(deque<pcb_t*>* pcb, Partition* memory) {
+        //Iterate through every single process not arrived process
+        for (int i = 0 ; i < pcb[NOT_ARRIVED].size() ; i++) {
+            //Check to see if it has not arrived and if the time is ready for arrival
+            if (pcb[NOT_ARRIVED].at(i)->arrivalTime <= Execution::timer) {
+                //change state without printing
+                pcb[NEW].push_back(pcb[NOT_ARRIVED].at(i));
+                pcb[NOT_ARRIVED].erase(pcb[NOT_ARRIVED].begin() + i);
+                loadMemory(pcb, memory);
             }
         }
-        
-        // We need to choose a process to run.
-        ExecutionOrder order = getExecutionOrder(readyProcesses, false);
-        if (order.process != nullptr) {
-            if (order.process->currentState == TERMINATED) {return;}    
-        
-            //The process first needs to be set to run.
-            writeExecutionStep((ExecutionOrder){.process = order.process, .time = 0, .nextState = RUNNING});
-            order.process->currentState = RUNNING;
+    }
 
-            //Will the process terminate?
-            if (order.process->currentTime + order.time >= order.process->totalCPUTime) {
-                order.time = order.process->totalCPUTime - order.process->currentTime;
-                order.nextState = TERMINATED;
-            } else {
-                //Next, do the math to determine whether or not the process will be interrupted by IO
-                int timeToIO = order.process->ioFrequency - order.time;
-                if (timeToIO < 0) {
-                    //If the process will not be interrupted by IO
-                    order.time = order.process->ioFrequency;
-                    order.nextState = READY;
-                } else {
-                    //If the process will be interrupted by IO
-                    order.time = order.process->ioFrequency;
-                    order.nextState = WAITING;
-                }
-            }
-            order.process->currentTime += order.time;
-            //Either way, print the state transition
-            //Either way, increment the timer
-            timer += order.time;
-            writeExecutionStep(order);
-            //Now change the state of the process that was just executed
-            order.process->currentState = order.nextState;
-        } else {
-            //Either way, increment the timer
-            timer += order.time;
-        }
-        
-
-        
-
+    void doIO(deque<pcb_t*>* pcb) {
+        //Iterate through every single process in the waiting state
         //Do the IO for any processes that are waiting during this time
         //Increment waiting time for all proceses in the waiting state. Move to ready if their time has completed.
-        for (pcb_t* p : pcb) {
-            if (p->currentState == WAITING && p != order.process) {
-                p->waitedTime += order.time;
-                if (p->waitedTime >= p->ioDuration) {
-                    writeExecutionStep((ExecutionOrder){.process = p, .time = 0, .nextState = READY});
-                    p->currentState = READY;
-                    p->waitedTime = 0;
-                }
+        for (int i = 0 ; i < pcb[WAITING].size() ; i++) {
+            pcb[WAITING].at(i)->waitedTime++;
+            //Check to see if the process is ready to leave the waiting state
+            if (pcb[WAITING].at(i)->ioDuration <= pcb[WAITING].at(i)->waitedTime) {
+                pcb[WAITING].at(i)->waitedTime = 0;
+                changeState(pcb[WAITING].at(i), WAITING, READY, pcb);
             }
+        }
+    }
+
+    void doExecution(deque<pcb_t*>* pcb, Partition* memory)
+    {   
+        // We need to choose a process to run.
+        ExecutionOrder order = getExecutionOrder(pcb[READY], false);
+
+        //Check if there is a process to run
+        if (order.process != nullptr) {
+            //Determine the next state of the process
+            ProcessState nextState;
+            if (((int) order.process->totalCPUTime - order.time) <= 0) {
+                nextState = TERMINATED;
+                order.time = order.process->totalCPUTime;
+            } else if (order.time >= order.process->ioFrequency) {
+                nextState = WAITING;
+                order.time = order.process->ioFrequency;
+            } else {
+                nextState = READY;
+            }
+            changeState(order.process, READY, RUNNING, pcb);
+            //Increment the timer while checking for any processes that have arrived or finished IO
+            for (int i = 0 ; i < order.time ; i++) {
+                timer += 1;
+                order.process->totalCPUTime -= 1;
+                checkArrived(pcb,memory);
+                doIO(pcb);
+            }
+            changeState(order.process, RUNNING, nextState, pcb);
+            if (nextState == TERMINATED) {
+                order.process->memoryAllocated->code = -1;
+                order.process->memoryAllocated = nullptr;
+                writeMemoryStatus(order.process->memorySize,pcb,memory);
+                loadMemory(pcb, memory);
+            }
+        } else {
+            timer += 1;
+            checkArrived(pcb,memory);
+            doIO(pcb);
+        }
+    }
+
+    bool changeState(pcb_t* process, ProcessState initialState, ProcessState finalState, deque<pcb_t*>* pcb) {
+        //Get the process
+        for (int i = 0; i < pcb[initialState].size(); i++) {
+            if (pcb[initialState].at(i) == process) {
+                pcb[initialState].erase((pcb[initialState].begin() + i));
+                pcb[finalState].push_back(process);
+                writeExecutionStep(process, initialState, finalState);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void setStrategyUsed(std::string strategy) {
+        if (strategy == "FCFS") {
+            strategyUsed = 0;
+        } else if (strategy == "EP") {
+            strategyUsed = 1;
+        } else if (strategy == "RR") {
+            strategyUsed = 2;
         }
     }
 }
@@ -451,11 +402,12 @@ int main(int argc, char *argv[])
     // Check to make sure there are arguments
     if (argc != Parsing::ARGUMENT_NUM)
     {
-        cout << "There should only be " << Parsing::ARGUMENT_NUM << " argument." << endl;
+        cout << "There must be " << Parsing::ARGUMENT_NUM << " argument." << endl;
         return 1;
     }
     //Set the output
     Execution::setOutputFiles(Parsing::getOutputFilename("execution",argv[1]),Parsing::getOutputFilename("memory_status",argv[1]));
+    Execution::setStrategyUsed(argv[2]);
     //Print the headers of both files
     //Execution output header
     Execution::executionOutput << "+------------------------------------------------+" << std::endl;
@@ -480,21 +432,21 @@ int main(int argc, char *argv[])
         memory[i] = (Partition){.partitionNum = __uint8_t(i + 1), .size = __uint8_t(PARTITION_SIZES[i]), .code = -1};
     }
 
-    vector<pcb_t*> pcb = Parsing::loadPCBTable(argv[1]);  // Initialize pcb entry
+    // Create the PCB table
+    deque<pcb_t*> pcb[Execution::NUM_STATES];
+    pcb[0] = Parsing::loadPCBTable(argv[1]);  // Initialize pcb entry
     cout << "Loaded PCB Table: " << endl;
-    for (pcb_t* p : pcb) {
+    for (pcb_t* p : pcb[0]) {
         cout << "PID: " << p->pid << " Memory Size: " << p->memorySize << " Arrival Time: " << p->arrivalTime << " Total CPU Time: " << p->totalCPUTime << " IO Frequency: " << p->ioFrequency << " IO Duration: " << p->ioDuration << endl;
     }
     //Print initial state of memory
     Execution::writeMemoryStatus(0,pcb,memory);
-
-    // Loop continues while there are still processes to run in the pcb.
-    // Get the process that should be run right now. from the pcb
-    // Start executing that and continue to check for the best process to run.
+    //Check for any processes arriving at t=0
+    Execution::checkArrived(pcb,memory);
+    //Now begin the execution and memory loading until there are no procesess left
     while (Execution::processesRemain(pcb,memory))
     {
-       Execution::evaluateMemory(pcb,memory); //handles Memory loading and unloading
-       Execution::doExecution(pcb); //handles the CPU
+       Execution::doExecution(pcb,memory); //handles the CPU
     }
 
     //End the output files
@@ -505,6 +457,11 @@ int main(int argc, char *argv[])
     Execution::memoryStatusOutput.close();
     // Cleanup
     delete[] memory;
+    for (int i = 0 ; i < Execution::NUM_STATES ; i++) {
+        for (int j = 0 ; j < pcb[i].size() ; j++) {
+            delete pcb[i].at(j);
+        }
+    }
     // All other structs are deallocated when vector activates their deconstructors.
     return 0;
 }
