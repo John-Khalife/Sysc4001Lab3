@@ -20,5 +20,6 @@ fi
 #compile interrupts
 g++  interrupts.cpp -I interrupts.hpp -o sim
 ./sim $filename $name
+#Run the gantt chart bullcrap
 python3 parseGantt.py $filename
 
