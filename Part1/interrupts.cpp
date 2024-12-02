@@ -227,7 +227,7 @@ namespace Execution
             // Sort the pcb by ioFrequency from smallest to largest
             for (int i = 0; i < pcb.size() - 1; i++) {
                 for (int j = 0; j < pcb.size() - i - 1; j++) {
-                    if (pcb[j]->ioFrequency > pcb[j + 1]->ioFrequency) {
+                    if (pcb[j]->pid > pcb[j + 1]->pid) {
                         pcb_t* temp = pcb[j];
                         pcb[j] = pcb[j + 1];
                         pcb[j + 1] = temp;
