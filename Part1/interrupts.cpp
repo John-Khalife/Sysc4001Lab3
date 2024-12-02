@@ -4,6 +4,8 @@
  * @author John Khalife, Stavros Karamalis
  */
 
+//! ASSUMPTION: FOR FCFS, PROCESSES THAT GO FROM WAITING TO READY ARE PLACED AT THE END OF THE READY QUEUE
+
 #include <iostream>
 #include <fstream>
 #include <random>
@@ -70,7 +72,7 @@ namespace Parsing
                 cerr << e.what() << '\n';
                 exit(1);
             }
-            pcbTable.push_front(newProcess);
+            pcbTable.push_back(newProcess);
 
         }
     
