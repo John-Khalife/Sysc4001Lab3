@@ -1,19 +1,39 @@
-#IMPORTANT NOTE: use https://process-scheduling-solver.boonsuen.com/ to help fill out data.
-
 import plotly.graph_objects as go
 import pandas as pd
+import random
 
-# Define a global color mapping for events
-color_mapping = {
-    '1': 'blue',
-    '2': 'orange',
-    '3': 'green',
-    '12': 'red',
-    '15': 'purple',
-    'IO': 'grey'
-}
+# Initialize a global dictionary to store assigned colors for events
+event_color_mapping = {}
 
-def drawGantt(events, divisions, title):
+# Define a pool of colors to assign to events dynamically
+color_pool = [
+    "blue", "orange", "green", "red", "purple", "cyan", "magenta", 
+    "yellow", "lime", "pink", "teal", "brown", "gold", "navy", "olive"
+]
+
+def get_event_color(event_name):
+    """
+    Get the color for an event. If the event is 'IO', return gray.
+    Otherwise, assign a unique color to the event from the color pool.
+    """
+    if event_name == "IO":
+        return "gray"
+    if event_name not in event_color_mapping:
+        # Assign a new color from the pool, ensuring no duplicate assignments
+        color = color_pool.pop(0)
+        event_color_mapping[event_name] = color
+    return event_color_mapping[event_name]
+
+def drawGantt(events, divisions, title, metrics):
+    """
+    Draws a Gantt chart with performance metrics and dynamic color mapping.
+    
+    Parameters:
+    events (list): List of events for the Gantt chart.
+    divisions (list): List of division points corresponding to the events.
+    title (str): Title of the chart.
+    metrics (dict): Dictionary containing performance metrics.
+    """
     # Create a DataFrame from events
     df = pd.DataFrame(events)
 
@@ -26,8 +46,8 @@ def drawGantt(events, divisions, title):
         start = divisions[index]
         end = divisions[index + 1] if index + 1 < len(divisions) else start + 1  # Set default end if no next division
 
-        # Use the color mapping to get the color for the event
-        event_color = color_mapping.get(row['Event'], 'lightgrey')  # Default to gray if not found
+        # Get or assign the color for the event
+        event_color = get_event_color(row['Event'])
 
         # Calculate the midpoint for label placement
         midpoint = (start + end) / 2
@@ -55,6 +75,25 @@ def drawGantt(events, divisions, title):
                 color='white'  # Set text color to white
             )
         ))
+
+    # Add performance metrics as a text annotation
+    metrics_text = (
+        f"Throughput: {metrics['throughput']} processes/sec\n"
+        f"Average Wait Time: {metrics['avg_wait_time']:.2f} sec\n"
+        f"Average Turnaround Time: {metrics['avg_turnaround_time']:.2f} sec\n"
+        f"Average Response Time: {metrics['avg_response_time']:.2f} sec"
+    )
+    fig.add_annotation(
+        text=metrics_text,
+        xref="paper", yref="paper",
+        x=1.05, y=1.1,  # Position in the corner
+        showarrow=False,
+        font=dict(size=12, color="black"),
+        align="left",
+        bordercolor="black",
+        borderwidth=1,
+        bgcolor="white",
+    )
 
     # Update layout
     fig.update_layout(
