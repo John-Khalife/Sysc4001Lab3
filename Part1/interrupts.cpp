@@ -356,15 +356,15 @@ namespace Execution
         //Check if there is a process to run
         if (order.process != nullptr) {
             //Determine the next state of the process
-            ProcessState nextState;
+            ProcessState nextState = READY;
+            cout << "Process " << order.process->pid << "vtime: " << order.time << " vfrequency" << order.process->ioFrequency << endl;
+            if (order.time >= order.process->ioFrequency) {
+                nextState = WAITING;
+                order.time = order.process->ioFrequency;
+            }
             if (((int) order.process->totalCPUTime - order.time) <= 0) {
                 nextState = TERMINATED;
                 order.time = order.process->totalCPUTime;
-            } else if (order.time >= order.process->ioFrequency) {
-                nextState = WAITING;
-                order.time = order.process->ioFrequency;
-            } else {
-                nextState = READY;
             }
             changeState(order.process, READY, RUNNING, pcb);
             //Increment the timer while checking for any processes that have arrived or finished IO

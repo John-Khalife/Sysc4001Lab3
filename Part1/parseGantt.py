@@ -35,20 +35,30 @@ for i in data:
 events = []
 divisions = []
 process_info = {}  # Dictionary to store process-specific info
-
+last_stop = 0
 # Now create the lists of events and calculate metrics
 for i in data:
     timestamp = int(i[1])
     process_name = i[2]
     nextState = i[4]
     state = i[3]
+    
 
     # Record event for Gantt chart
     if nextState == RUNNING:
+        print("timestamp: ", timestamp , "last_stop: ", last_stop)
+        if (last_stop != timestamp):
+            divisions.append(last_stop)
+            events.append({'Event': 'IDLE'})
+            print("IO event added at" , last_stop)
+
         events.append({'Event': process_name})
         divisions.append(timestamp)
-
    
+    if (nextState == WAITING or nextState == READY or nextState == TERMINATED) and state == RUNNING:
+        print("called with timestamp: ", timestamp)
+        last_stop = timestamp
+
     # Initialize process info if not present
     if process_name not in process_info:
         process_info[process_name] = {
@@ -87,6 +97,8 @@ for i in data:
 # Append the last division
 divisions.append(int(data[-1][1]))
 
+print("Events:", events, "\nDivisions:", divisions)
+
 #print all process info
 for process_name, info in process_info.items():
     print(f"Process {process_name}:")
@@ -98,9 +110,11 @@ for process_name, info in process_info.items():
 
 
 # Check for errors
-if (len(events) + 1) != len(divisions):
+if (len(events) + 1) == len(divisions):
     print("Error: Events and divisions are not the same length")
     print("Events:", len(events), "Divisions:", len(divisions))
+
+
 
 # Calculate metrics
 total_processes = len(process_info)

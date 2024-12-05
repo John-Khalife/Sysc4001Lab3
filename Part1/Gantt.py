@@ -13,10 +13,10 @@ color_pool = [
 
 def get_event_color(event_name):
     """
-    Get the color for an event. If the event is 'IO', return gray.
+    Get the color for an event. If the event is 'IDLE', return gray.
     Otherwise, assign a unique color to the event from the color pool.
     """
-    if event_name == "IO":
+    if event_name == "IDLE":
         return "gray"
     if event_name not in event_color_mapping:
         # Assign a new color from the pool, ensuring no duplicate assignments
@@ -26,7 +26,8 @@ def get_event_color(event_name):
 
 def drawGantt(events, divisions, title, metrics):
     """
-    Draws a Gantt chart with performance metrics and dynamic color mapping.
+    Draws a Gantt chart with performance metrics, dynamic color mapping,
+    a legend, and labels for transition points below the graph in a diagonal orientation.
     
     Parameters:
     events (list): List of events for the Gantt chart.
@@ -39,6 +40,21 @@ def drawGantt(events, divisions, title, metrics):
 
     # Create a figure
     fig = go.Figure()
+
+    # Create a set of unique events to build the legend
+    unique_events = set(event['Event'] for event in events)
+
+    # Add invisible traces to serve as the legend
+    for event_name in unique_events:
+        event_color = get_event_color(event_name)
+        fig.add_trace(go.Scatter(
+            x=[None],  # Invisible trace
+            y=[None],
+            mode='markers',
+            marker=dict(size=10, color=event_color),
+            name=event_name,  # Add event name to the legend
+            showlegend=True  # Ensure it appears in the legend
+        ))
 
     # Loop through the events to draw the Gantt bars
     for index, row in df.iterrows():
@@ -59,7 +75,8 @@ def drawGantt(events, divisions, title, metrics):
             fill='toself',      # Fill the area under the line
             line=dict(width=0), # No border line
             fillcolor=event_color,  # Fill color from the color mapping
-            name=row['Event']
+            name=row['Event'],
+            showlegend=False  # Do not duplicate legend for individual blocks
         ))
 
         # Add event name as text in the middle of the block
@@ -74,6 +91,18 @@ def drawGantt(events, divisions, title, metrics):
                 size=16,  # Set font size
                 color='white'  # Set text color to white
             )
+        ))
+
+    # Add transition point labels below the x-axis, rotated diagonally
+    for point in divisions:
+        fig.add_trace(go.Scatter(
+            x=[point],  # Transition point
+            y=[-0.1],  # Y position below the graph
+            mode='text',
+            text=f"{point}",  # Label with the transition time
+            textposition='middle center',
+            #textangle=45,  # Rotate text to be diagonal
+            showlegend=False  # No legend for the transition points
         ))
 
     # Add performance metrics as a text annotation
@@ -100,37 +129,18 @@ def drawGantt(events, divisions, title, metrics):
         title=title,  # Title
         yaxis=dict(visible=False),  # Hide y-axis completely
         xaxis=dict(
-            title= "Time (seconds)",  # Title for x-axis
-            visible=True,      # Hide the axis completely (no ticks or lines)
+            title="Time (seconds)",  # Title for x-axis
             showgrid=False,     # No grid lines
             zeroline=False,     # No zero line
-            showline=False,     # No axis line
-            tickvals=[],        # No tick values
-            ticktext=[]        # No tick text
+            showline=True,      # Show axis line
+            tickvals=[],        # No automatic ticks
+            ticktext=[]         # No automatic tick text
         ),
-        showlegend=False,
+        showlegend=True,  # Enable legend display
         title_x=0.5,  # Center the title
-        title_y=0.8,  # Adjust distance of title from the graph
         paper_bgcolor='white',  # Set the outer background color to white
         plot_bgcolor='white',   # Set the plot area background color to white
     )
-
-    # Add markers for the division points
-    for point in divisions:
-        fig.add_trace(go.Scatter(
-            x=[point,point],  # Division point
-            y=[0,1],      # Y position for marker
-            mode='markers+text+lines',  # Show marker and text
-            marker=dict(size=10, color='black'),  # Marker style
-            line=dict(color='black', width=2), 
-            textfont=dict(
-                size=12,  # Set font size
-                color='black'  # Set text color to black
-            ),
-            text=[point],  # Marker label
-            textposition='bottom center',  # Position label below marker
-            showlegend=False,  # Hide legend for this trace
-        ))
 
     # Show the plot
     fig.show()
