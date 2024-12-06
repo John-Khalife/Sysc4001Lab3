@@ -141,6 +141,7 @@ namespace Execution
     void loadMemory(deque<pcb_t*>* pcb, Partition* memory) {
         //Iterate through every single process in the new state
         while (!pcb[1].empty()) {
+            
             //First check if there is space
             bool isSpace = false;
             for (int i = 0 ; i < PARTITION_NUM ; i++) {
@@ -160,7 +161,15 @@ namespace Execution
             if (reserveMemory(memory, order.process->memorySize, order.process)) {
                 changeState(order.process, NEW, READY, pcb);
                 writeMemoryStatus(order.process->memorySize,pcb,memory);
-            } 
+            } else {
+                //temporariily change the state to not ready
+                for (int i = 0; i < pcb[NEW].size(); i++) {
+                    if (pcb[NEW].at(i) == order.process) {
+                        pcb[NEW].erase((pcb[NEW].begin() + i));
+                        pcb[NOT_ARRIVED].push_front(order.process);
+                    }
+                }
+            }
         }
     }
 
@@ -235,7 +244,7 @@ namespace Execution
                 }
             }
             order.process = pcb.front();
-            order.time = pcb.front()->ioDuration;
+            order.time = pcb.front()->ioFrequency;
         }
         return order;
     }
@@ -325,9 +334,17 @@ namespace Execution
             //Check to see if it has not arrived and if the time is ready for arrival
             if (pcb[NOT_ARRIVED].at(i)->arrivalTime <= Execution::timer) {
                 //change state without printing
+                pcb_t* temp = pcb[NOT_ARRIVED].at(i);
                 pcb[NEW].push_back(pcb[NOT_ARRIVED].at(i));
                 pcb[NOT_ARRIVED].erase(pcb[NOT_ARRIVED].begin() + i);
                 loadMemory(pcb, memory);
+                //Check if temp was moved back to NOT ARRIVED
+                for (int j = 0 ; j < pcb[NOT_ARRIVED].size() ; j++) {
+                    if (pcb[NOT_ARRIVED].at(j) == temp) {
+                        i++;
+                        break;
+                    }
+                }
                 i--;
             }
         }
@@ -357,7 +374,6 @@ namespace Execution
         if (order.process != nullptr) {
             //Determine the next state of the process
             ProcessState nextState = READY;
-            cout << "Process " << order.process->pid << "vtime: " << order.time << " vfrequency" << order.process->ioFrequency << endl;
             if (order.time >= order.process->ioFrequency) {
                 nextState = WAITING;
                 order.time = order.process->ioFrequency;
@@ -478,6 +494,7 @@ int main(int argc, char *argv[])
             delete pcb[i].at(j);
         }
     }
+    cout << "Completed execution." << endl;
     // All other structs are deallocated when vector activates their deconstructors.
     return 0;
 }

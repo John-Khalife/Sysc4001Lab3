@@ -1,5 +1,6 @@
 import sys
 import Gantt
+import plotly.graph_objects as go
 
 # Constants for state names
 NEW = "NEW"
@@ -110,7 +111,7 @@ for process_name, info in process_info.items():
 
 
 # Check for errors
-if (len(events) + 1) == len(divisions):
+if (len(events) + 1) != len(divisions):
     print("Error: Events and divisions are not the same length")
     print("Events:", len(events), "Divisions:", len(divisions))
 
@@ -169,5 +170,9 @@ print(f"Average Turnaround Time: {avg_turnaround_time}")
 print(f"Average Response Time: {avg_response_time}")
 
 
+# Write metrics to file
+with open("metrics.txt", "a") as file:
+    file.write(f"File: {filename} Strategy: {sys.argv[2]} Throughput: {throughput}, Average Wait Time: {avg_wait_time}, Average Turnaround Time: {avg_turnaround_time}, Average Response Time: {avg_response_time}\n")
+
 # Call the Gantt chart function
-Gantt.drawGantt(events, divisions, "Part1 CPU execution", metrics)
+Gantt.drawGantt(events, divisions, "Part1 CPU execution " + sys.argv[2], metrics).write_image("Chart_" + newfilename + ".png")

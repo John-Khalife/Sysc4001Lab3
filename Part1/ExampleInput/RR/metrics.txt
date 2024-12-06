@@ -1,0 +1,2 @@
+File: 101263531_101262829_1.txt Strategy: RR Throughput: 0.03225806451612903, Average Wait Time: 0.0, Average Turnaround Time: 31.0, Average Response Time: 0.0
+File: 101263531_101262829_2.txt Strategy: RR Throughput: 0.0228310502283105, Average Wait Time: 78.8, Average Turnaround Time: 143.4, Average Response Time: 23.0

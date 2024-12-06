@@ -1,0 +1,10 @@
+File: 101263531_101262829_1.txt Strategy: RR Throughput: 0.025, Average Wait Time: 0.0, Average Turnaround Time: 40.0, Average Response Time: 0.0
+File: 101263531_101262829_2.txt Strategy: RR Throughput: 0.10526315789473684, Average Wait Time: 0.5, Average Turnaround Time: 16.0, Average Response Time: 0.0
+File: 101263531_101262829_3.txt Strategy: RR Throughput: 0.06382978723404255, Average Wait Time: 4.333333333333333, Average Turnaround Time: 19.333333333333332, Average Response Time: 4.333333333333333
+File: 101263531_101262829_4.txt Strategy: RR Throughput: 0.08695652173913043, Average Wait Time: 9.5, Average Turnaround Time: 24.0, Average Response Time: 3.25
+File: 101263531_101262829_5.txt Strategy: RR Throughput: 0.03759398496240601, Average Wait Time: 21.4, Average Turnaround Time: 53.4, Average Response Time: 10.4
+File: 101263531_101262829_6.txt Strategy: RR Throughput: 0.036585365853658534, Average Wait Time: 29.0, Average Turnaround Time: 69.0, Average Response Time: 9.166666666666666
+File: 101263531_101262829_7.txt Strategy: RR Throughput: 0.044585987261146494, Average Wait Time: 30.285714285714285, Average Turnaround Time: 57.0, Average Response Time: 18.142857142857142
+File: 101263531_101262829_8.txt Strategy: RR Throughput: 0.03636363636363636, Average Wait Time: 57.5, Average Turnaround Time: 95.5, Average Response Time: 18.75
+File: 101263531_101262829_9.txt Strategy: RR Throughput: 0.03418803418803419, Average Wait Time: 28.25, Average Turnaround Time: 70.25, Average Response Time: 10.5
+File: 101263531_101262829_10.txt Strategy: RR Throughput: 0.041916167664670656, Average Wait Time: 34.57142857142857, Average Turnaround Time: 67.28571428571429, Average Response Time: 6.714285714285714

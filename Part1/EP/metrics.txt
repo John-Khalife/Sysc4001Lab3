@@ -1,0 +1,10 @@
+File: 101263531_101262829_1.txt Strategy: EP Throughput: 0.025, Average Wait Time: 0.0, Average Turnaround Time: 40.0, Average Response Time: 0.0
+File: 101263531_101262829_2.txt Strategy: EP Throughput: 0.10526315789473684, Average Wait Time: 0.5, Average Turnaround Time: 16.0, Average Response Time: 0.0
+File: 101263531_101262829_3.txt Strategy: EP Throughput: 0.06382978723404255, Average Wait Time: 4.333333333333333, Average Turnaround Time: 19.333333333333332, Average Response Time: 4.333333333333333
+File: 101263531_101262829_4.txt Strategy: EP Throughput: 0.08695652173913043, Average Wait Time: 11.5, Average Turnaround Time: 26.0, Average Response Time: 2.75
+File: 101263531_101262829_5.txt Strategy: EP Throughput: 0.04065040650406504, Average Wait Time: 20.8, Average Turnaround Time: 52.8, Average Response Time: 16.4
+File: 101263531_101262829_6.txt Strategy: EP Throughput: 0.039473684210526314, Average Wait Time: 32.166666666666664, Average Turnaround Time: 72.16666666666667, Average Response Time: 13.166666666666666
+File: 101263531_101262829_7.txt Strategy: EP Throughput: 0.045454545454545456, Average Wait Time: 37.57142857142857, Average Turnaround Time: 64.28571428571429, Average Response Time: 28.0
+File: 101263531_101262829_8.txt Strategy: EP Throughput: 0.03669724770642202, Average Wait Time: 47.875, Average Turnaround Time: 85.875, Average Response Time: 27.125
+File: 101263531_101262829_9.txt Strategy: EP Throughput: 0.032, Average Wait Time: 26.25, Average Turnaround Time: 68.25, Average Response Time: 11.0
+File: 101263531_101262829_10.txt Strategy: EP Throughput: 0.04216867469879518, Average Wait Time: 36.142857142857146, Average Turnaround Time: 68.85714285714286, Average Response Time: 13.285714285714286

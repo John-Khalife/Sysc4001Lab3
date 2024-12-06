@@ -1,0 +1,2 @@
+File: 101263531_101262829_1.txt Strategy: EP Throughput: 0.03225806451612903, Average Wait Time: 0.0, Average Turnaround Time: 31.0, Average Response Time: 0.0
+File: 101263531_101262829_2.txt Strategy: EP Throughput: 0.025, Average Wait Time: 71.8, Average Turnaround Time: 136.4, Average Response Time: 37.0

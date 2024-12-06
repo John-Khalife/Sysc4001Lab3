@@ -117,25 +117,6 @@ def drawGantt(events, divisions, title, metrics):
         )
 
 
-    # Add performance metrics as a text annotation
-    metrics_text = (
-        f"Throughput: {metrics['throughput']} processes/sec\n"
-        f"Average Wait Time: {metrics['avg_wait_time']:.2f} sec\n"
-        f"Average Turnaround Time: {metrics['avg_turnaround_time']:.2f} sec\n"
-        f"Average Response Time: {metrics['avg_response_time']:.2f} sec"
-    )
-    fig.add_annotation(
-        text=metrics_text,
-        xref="paper", yref="paper",
-        x=1.05, y=1.1,  # Position in the corner
-        showarrow=False,
-        font=dict(size=12, color="black"),
-        align="left",
-        bordercolor="black",
-        borderwidth=1,
-        bgcolor="white",
-    )
-
     # Update layout
     fig.update_layout(
         title=title,  # Title
@@ -155,4 +136,5 @@ def drawGantt(events, divisions, title, metrics):
     )
 
     # Show the plot
-    fig.show()
+    #fig.show()
+    return fig

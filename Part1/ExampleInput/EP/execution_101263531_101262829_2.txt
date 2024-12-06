@@ -1,0 +1,55 @@
++------------------------------------------------+
+|Time of Transition |PID | Old State | New State |
++------------------------------------------------+
+|                  0 | 15 |       NEW |     READY |
+|                  0 | 12 |       NEW |     READY |
+|                  0 |  1 |       NEW |     READY |
+|                  0 |  1 |     READY |   RUNNING |
+|                  5 |  2 |       NEW |     READY |
+|                 14 |  3 |       NEW |     READY |
+|                 25 |  1 |   RUNNING |   WAITING |
+|                 25 |  2 |     READY |   RUNNING |
+|                 35 |  2 |   RUNNING |   WAITING |
+|                 35 |  3 |     READY |   RUNNING |
+|                 37 |  2 |   WAITING |     READY |
+|                 37 |  3 |   RUNNING |   WAITING |
+|                 37 |  2 |     READY |   RUNNING |
+|                 47 |  3 |   WAITING |     READY |
+|                 47 |  2 |   RUNNING | TERMINATED |
+|                 47 |  3 |     READY |   RUNNING |
+|                 49 |  3 |   RUNNING |   WAITING |
+|                 49 | 12 |     READY |   RUNNING |
+|                 50 |  1 |   WAITING |     READY |
+|                 59 |  3 |   WAITING |     READY |
+|                 59 | 12 |   RUNNING |   WAITING |
+|                 59 |  1 |     READY |   RUNNING |
+|                 64 | 12 |   WAITING |     READY |
+|                 84 |  1 |   RUNNING |   WAITING |
+|                 84 |  3 |     READY |   RUNNING |
+|                 85 |  3 |   RUNNING | TERMINATED |
+|                 85 | 12 |     READY |   RUNNING |
+|                 95 | 12 |   RUNNING |   WAITING |
+|                 95 | 15 |     READY |   RUNNING |
+|                100 | 12 |   WAITING |     READY |
+|                106 | 15 |   RUNNING |   WAITING |
+|                106 | 12 |     READY |   RUNNING |
+|                109 |  1 |   WAITING |     READY |
+|                109 | 15 |   WAITING |     READY |
+|                116 | 12 |   RUNNING |   WAITING |
+|                116 |  1 |     READY |   RUNNING |
+|                121 | 12 |   WAITING |     READY |
+|                141 |  1 |   RUNNING |   WAITING |
+|                141 | 12 |     READY |   RUNNING |
+|                151 | 12 |   RUNNING |   WAITING |
+|                151 | 15 |     READY |   RUNNING |
+|                156 | 12 |   WAITING |     READY |
+|                162 | 15 |   RUNNING |   WAITING |
+|                162 | 12 |     READY |   RUNNING |
+|                165 | 15 |   WAITING |     READY |
+|                166 |  1 |   WAITING |     READY |
+|                172 | 12 |   RUNNING | TERMINATED |
+|                172 |  1 |     READY |   RUNNING |
+|                197 |  1 |   RUNNING | TERMINATED |
+|                197 | 15 |     READY |   RUNNING |
+|                200 | 15 |   RUNNING | TERMINATED |
++------------------------------------------------+
