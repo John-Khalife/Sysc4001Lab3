@@ -49,7 +49,7 @@ for i in data:
         print("timestamp: ", timestamp , "last_stop: ", last_stop)
         if (last_stop != timestamp):
             divisions.append(last_stop)
-            events.append({'Event': 'IDLE'})
+            events.append({'Event': ''})
             print("IO event added at" , last_stop)
 
         events.append({'Event': process_name})

@@ -16,7 +16,7 @@ def get_event_color(event_name):
     Get the color for an event. If the event is 'IDLE', return gray.
     Otherwise, assign a unique color to the event from the color pool.
     """
-    if event_name == "IDLE":
+    if event_name == "":
         return "gray"
     if event_name not in event_color_mapping:
         # Assign a new color from the pool, ensuring no duplicate assignments
@@ -95,15 +95,27 @@ def drawGantt(events, divisions, title, metrics):
 
     # Add transition point labels below the x-axis, rotated diagonally
     for point in divisions:
-        fig.add_trace(go.Scatter(
-            x=[point],  # Transition point
-            y=[-0.1],  # Y position below the graph
-            mode='text',
+        # fig.add_trace(go.Scatter(
+        #     x=[point],  # Transition point
+        #     y=[-0.1],  # Y position below the graph
+        #     mode='text',
+        #     text=f"{point}",  # Label with the transition time
+        #     textposition='middle center',
+        #     #textangle=45,  # Rotate text to be diagonal
+        #     showlegend=False  # No legend for the transition points
+        # ))
+        # Add transition point labels below the x-axis, rotated diagonally
+        fig.add_annotation(
+            x=point,  # Transition point
+            y=-0.1,  # Y position below the graph
             text=f"{point}",  # Label with the transition time
-            textposition='middle center',
-            #textangle=45,  # Rotate text to be diagonal
-            showlegend=False  # No legend for the transition points
-        ))
+            showarrow=False,  # No arrow
+            font=dict(size=12, color="black"),
+            textangle=45,  # Rotate text to be diagonal
+            xanchor="center",  # Anchor text horizontally
+            yanchor="top",  # Anchor text vertically
+        )
+
 
     # Add performance metrics as a text annotation
     metrics_text = (
