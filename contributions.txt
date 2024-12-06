@@ -1,0 +1,10 @@
+Contributors:
+    Stavros Karamalis 101263531_101262829
+        Contributions:
+            - Completed the entirety of Part3
+            - Wrote reports for Part1 and Part2
+            - Contributed some functions to Part1
+    John Khalife
+        Contributions:
+            - Wrote the code for Part1 and Part2
+            - Created automation software for test cases and gantt charts
